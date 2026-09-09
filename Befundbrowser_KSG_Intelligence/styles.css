@@ -377,3 +377,81 @@ body:not(.is-ready) .hero-stats .stat strong::after { content:"";position:absolu
   }
   .strip-dot:hover, .modality-button:hover { transform:none; }
 }
+
+/* ============================================================================
+   Intelligence 5.0 · Aero Glass, Live-Status, Stilprüfung
+   ========================================================================= */
+
+/* --- Glaslagen: Tiefe aus Unschärfe, Kantenlicht und Innenschatten ------- */
+:root {
+  --glass-blur: 22px;
+  --glass-edge: inset 0 1px 0 rgba(255,255,255,.92), inset 0 -1px 0 rgba(120,126,136,.09);
+  --glass-lift: 0 18px 44px -22px rgba(38,42,50,.34);
+  --glass-tint: linear-gradient(158deg, rgba(255,255,255,.72), rgba(255,255,255,.46) 46%, rgba(246,248,251,.56));
+}
+.glass-panel, .glass-report, .glass-workspace, .glass-modal, .glass-bar, .glass-mini {
+  backdrop-filter: blur(var(--glass-blur)) saturate(148%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(148%);
+}
+/* Spekulares Kantenlicht, das der Zeigerposition folgt */
+.glass-panel, .glass-report { position: relative; isolation: isolate; }
+.glass-panel::after, .glass-report::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 0;
+  background: radial-gradient(340px circle at calc(50% + var(--pointer-x,0px) * 3) calc(28% + var(--pointer-y,0px) * 2),
+    rgba(255,255,255,.42), transparent 62%);
+  opacity: .5; transition: opacity .5s ease;
+}
+.glass-panel:hover::after, .glass-report:hover::after { opacity: .74; }
+.glass-panel > *, .glass-report > * { position: relative; z-index: 1; }
+
+/* --- Live-Status des KI-Auftrags ---------------------------------------- */
+.ai-processing { display:grid;gap:13px;padding:16px 17px;border-radius:17px;
+  border:1px solid rgba(227,6,19,.16);background:var(--glass-tint);
+  box-shadow:var(--glass-edge),var(--glass-lift);
+  animation:processingIn .38s var(--ease-soft) both; }
+@keyframes processingIn { from { opacity:0;transform:translateY(10px) scale(.99); } to { opacity:1;transform:none; } }
+.processing-head { display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:13px;align-items:center; }
+.processing-headline { min-width:0; }
+.processing-headline strong { display:block;font-size:13.5px;font-weight:600;letter-spacing:-.01em; }
+.processing-headline small { display:block;color:var(--muted);font-size:11px;margin-top:2px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+.processing-timer { text-align:right; }
+.processing-timer strong { display:block;font-size:16px;font-weight:500;font-variant-numeric:tabular-nums;letter-spacing:-.02em; }
+.processing-timer small { display:block;color:var(--muted);font-size:9.5px;text-transform:uppercase;letter-spacing:.1em; }
+
+.processing-log { list-style:none;margin:0;padding:11px 0 0;display:grid;gap:4px;max-height:154px;overflow-y:auto;
+  scrollbar-width:thin;border-top:1px solid rgba(227,6,19,.1); }
+.processing-log li { display:grid;grid-template-columns:14px minmax(0,1fr) auto;gap:9px;align-items:center;
+  font-size:11.5px;color:var(--soft-ink);animation:optionRise .3s var(--ease-soft) both; }
+.log-mark { width:9px;height:9px;border-radius:50%;border:1.5px solid rgba(103,109,118,.32);justify-self:center;
+  transition:all .3s var(--ease-spring); }
+.processing-log li.is-active .log-mark { border-color:var(--ksg-red);animation:logPulse 1.25s ease-in-out infinite; }
+.processing-log li.is-done .log-mark { border-color:transparent;
+  background:linear-gradient(145deg,#f12531,var(--ksg-red-dark));box-shadow:0 2px 7px rgba(227,6,19,.3); }
+.processing-log li.is-done .log-text { color:var(--ink); }
+.log-time { font-variant-numeric:tabular-nums;font-size:10.5px;color:var(--muted); }
+@keyframes logPulse { 0%,100% { box-shadow:0 0 0 0 rgba(227,6,19,.36); } 50% { box-shadow:0 0 0 5px rgba(227,6,19,0); } }
+
+.processing-meta { display:flex;flex-wrap:wrap;gap:7px; }
+.processing-meta span { display:inline-flex;gap:6px;align-items:baseline;padding:4px 9px;border-radius:8px;
+  background:rgba(255,255,255,.56);border:1px solid rgba(103,109,118,.13);font-size:10.5px;color:var(--soft-ink);
+  animation:optionRise .34s var(--ease-soft) both; }
+.processing-meta b { font-weight:600;font-size:9.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted); }
+
+/* --- Stilprüfbericht am Ergebnis ---------------------------------------- */
+.style-report { display:flex;flex-wrap:wrap;gap:7px;margin:0 0 11px; }
+.style-chip { display:inline-flex;gap:6px;align-items:baseline;padding:4px 10px;border-radius:999px;
+  background:rgba(255,255,255,.6);border:1px solid rgba(103,109,118,.14);font-size:10.5px;color:var(--soft-ink); }
+.style-chip b { font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums; }
+.style-chip.is-ok { border-color:rgba(32,140,86,.3);background:rgba(238,250,243,.7);color:#1c6b45; }
+.style-chip.is-ok b { color:#14603c; }
+.style-chip.is-fixed { border-color:rgba(227,6,19,.26);background:rgba(255,241,242,.72);color:var(--ksg-red-dark); }
+
+@media (prefers-reduced-motion: reduce) {
+  .glass-panel::after, .glass-report::after { transition:none; }
+  .processing-log li.is-active .log-mark { animation:none;border-color:var(--ksg-red); }
+}
+
+/* --- Auslöser mit Tastaturhinweis --------------------------------------- */
+.ai-run-button kbd { margin-left:9px;padding:2px 6px;border-radius:6px;font:inherit;font-size:10px;
+  background:rgba(255,255,255,.22);border:1px solid rgba(255,255,255,.3);color:inherit;opacity:.85; }

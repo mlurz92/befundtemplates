@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light">
   <meta name="theme-color" content="#e30613">
-  <title>Befundbrowser · Intelligence 4.2.0 · Klinikum St. Georg</title>
+  <title>Befundbrowser · Intelligence 5.0 · Klinikum St. Georg</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -28,7 +28,7 @@
       <span class="brand-georg">St.GEORG</span>
     </div>
     <div class="department-wrap">
-      <span class="intelligence-pill">INTELLIGENCE · 4.2.0</span>
+      <span class="intelligence-pill">INTELLIGENCE · 5.0</span>
       <span class="department">Klinik für Radiologie und Nuklearmedizin</span>
     </div>
     <button class="header-settings glass-button" id="settings-open" type="button" aria-haspopup="dialog" title="OpenRouter KI-Einstellungen">
@@ -227,7 +227,7 @@
   </main>
 
   <footer class="page-footer glass-bar">
-    <span>Befundbrowser · Intelligence Layer 4.2.0 · KSG Aero Glass · AI Report Workshop</span>
+    <span>Befundbrowser · Intelligence Layer 5.0 · KSG Aero Glass · AI Report Workshop</span>
     <span class="footer-keys" aria-hidden="true"><kbd>←</kbd><kbd>→</kbd> blättern · <kbd>/</kbd> suchen · <kbd>C</kbd> kopieren · <kbd>Esc</kbd> zurücksetzen</span>
     <span id="app-status" role="status" aria-live="polite">Korpus wird geladen …</span>
   </footer>
@@ -271,7 +271,7 @@
   <dialog class="glass-modal ai-workshop" id="ai-workshop" aria-labelledby="ai-workshop-title">
     <div class="modal-shell ai-workshop-shell">
       <header class="modal-header ai-workshop-header">
-        <div><p class="eyebrow">Intelligence Level 4.2.0</p><h2 id="ai-workshop-title">AI Report Workshop</h2><p id="ai-workshop-model" class="ai-model-line">OpenRouter · Modell wird geladen</p></div>
+        <div><p class="eyebrow">Intelligence Level 5.0</p><h2 id="ai-workshop-title">AI Report Workshop</h2><p id="ai-workshop-model" class="ai-model-line">OpenRouter · Modell wird geladen</p></div>
         <button class="modal-close" id="ai-workshop-close" type="button" aria-label="KI-Werkstatt schließen">×</button>
       </header>
       <div class="ai-privacy-warning" id="ai-privacy-warning"><strong>Vorlagenmodus</strong><span>Nur deidentifizierte Inhalte verwenden. Der ausgewählte Provider kann eigene Datenrichtlinien haben.</span></div>
@@ -285,17 +285,28 @@
             <button type="button" class="quick-action" data-prompt="Passe ausschließlich die Beurteilung an die im Befund beschriebenen Tatsachen an und halte sie maximal knapp.">Beurteilung abgleichen</button>
             <button type="button" class="quick-action" data-prompt="Entferne ausschließlich die vom Nutzer bezeichnete Pathologie und stelle die betroffenen Aussagen konsistent als Normalbefund dar.">Pathologie entfernen</button>
             <button type="button" class="quick-action" data-prompt="Aktualisiere ausschließlich die vom Nutzer genannten Maße; alle übrigen Angaben unverändert lassen.">Maße aktualisieren</button>
+            <button type="button" class="quick-action" data-prompt="Formuliere den Befund auf die andere Körperseite um: spiegele ausschließlich alle Seitenangaben, ohne sonst etwas zu verändern.">Seite spiegeln</button>
+            <button type="button" class="quick-action" data-prompt="Ergänze eine Vergleichsangabe zur genannten Voruntersuchung und beschreibe die Verlaufsdynamik der bereits genannten Befunde; erfinde keine neuen Pathologien.">Verlauf ergänzen</button>
           </div>
           <textarea id="ai-instruction" rows="7" placeholder="z. B. Ergänze einen 8 mm großen Rundherd im rechten Oberlappen; alle übrigen Aussagen unverändert lassen."></textarea>
-          <button class="ai-run-button" id="ai-run" type="button"><span class="ai-spark">✦</span><span>Änderung mit KI ausführen</span></button>
-          <div class="ai-processing" id="ai-processing" hidden>
-            <div class="ai-processing-orb" aria-hidden="true"><i></i><i></i><i></i></div>
-            <div class="processing-steps"><span data-stage="analyze">Änderung analysieren</span><span data-stage="transform">Befund transformieren</span><span data-stage="check">Konsistenz prüfen</span></div>
+          <button class="ai-run-button" id="ai-run" type="button"><span class="ai-spark">✦</span><span>Änderung mit KI ausführen</span><kbd>Strg ↵</kbd></button>
+          <div class="ai-processing" id="ai-processing" hidden aria-live="polite">
+            <div class="processing-head">
+              <div class="ai-processing-orb" aria-hidden="true"><i></i><i></i><i></i></div>
+              <div class="processing-headline">
+                <strong id="ai-stage-label">Anfrage wird vorbereitet</strong>
+                <small id="ai-stage-detail">Modell wird ausgewählt</small>
+              </div>
+              <div class="processing-timer"><strong id="ai-elapsed">0,0 s</strong><small>Laufzeit</small></div>
+            </div>
+            <ol class="processing-log" id="ai-processing-log"></ol>
+            <div class="processing-meta" id="ai-processing-meta"></div>
           </div>
         </section>
       </div>
       <section class="ai-result-zone" id="ai-result-zone" hidden>
         <div class="result-toolbar"><div><span class="ai-result-badge">✦ KI-ENTWURF</span><strong id="ai-result-summary">Transformation abgeschlossen</strong></div><div class="version-controls"><button id="ai-undo" type="button">↶</button><div id="ai-version-timeline" class="version-timeline"></div><button id="ai-redo" type="button">↷</button><button id="ai-reset" type="button">Original</button></div></div>
+        <div class="style-report" id="ai-style-report" hidden></div>
         <div class="ai-warning-list" id="ai-warning-list"></div>
         <div class="ai-result-grid">
           <section class="glass-subpanel"><div class="panel-heading"><span>KI-Fassung</span><small>editierbar</small></div><label><span>Befund</span><textarea id="ai-result-findings" rows="10"></textarea></label><label><span>Beurteilung</span><textarea id="ai-result-impression" rows="5"></textarea></label></section>

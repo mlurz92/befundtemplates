@@ -26,7 +26,7 @@ from taxonomy_text import clinical_category, question_category        # noqa: E4
 from normal_miner import collect, select_template, sentences, normalize  # noqa: E402
 
 SCHEMA_VERSION = 3
-TAXONOMY_VERSION = '2026-09-09-intelligence-4-2'
+TAXONOMY_VERSION = '2026-09-09-intelligence-5-0'
 
 MIN_CLINICAL = 4          # Klin. Angaben unter dieser Fallzahl je Region werden gebuendelt
 MIN_QUESTION = 3          # Fragestellungen unter dieser Fallzahl je Knoten werden gebuendelt
@@ -147,11 +147,11 @@ def order_for_question(chosen, question):
 
 
 IMPRESSION_BY_QUESTION = {
-    'Staging': 'Kein Nachweis einer Fernmetastasierung im Untersuchungsgebiet.',
+    'Staging': 'Kein Nachweis von Fernmetastasen im Untersuchungsgebiet.',
     'Lokales Staging / Ausbreitungsdiagnostik': 'Kein Nachweis einer organüberschreitenden Tumorausbreitung.',
     'Nachsorge / Rezidivfrage': 'Kein Nachweis eines Lokalrezidivs.',
     'Verlaufskontrolle': 'Konstanter Befund gegenüber der Voruntersuchung.',
-    'Therapieansprechen / Restaging': 'Kein Nachweis einer Progression im Untersuchungsgebiet.',
+    'Therapieansprechen / Restaging': 'Keine Hinweise auf eine Progression im Untersuchungsgebiet.',
     'Metastasensuche': 'Kein Nachweis von Metastasen im Untersuchungsgebiet.',
     'Tumorverdacht / Dignität': 'Kein Nachweis einer suspekten Raumforderung.',
     'Therapie- / OP-Planung': 'Keine planungsrelevante Zusatzpathologie im Untersuchungsgebiet.',
@@ -168,6 +168,28 @@ IMPRESSION_BY_QUESTION = {
     'Abklärung / Ursachensuche': 'Kein erklärungsbedürftiger Befund im Untersuchungsgebiet.',
 }
 IMPRESSION_DEFAULT = 'Unauffälliger Befund im Untersuchungsgebiet.'
+
+
+def compose_impression(question_counts, question_total, region_counts, region_total,
+                       global_counts, global_total, question):
+    """Waehlt die Beurteilungszeile - bevorzugt aus echter Korpusevidenz.
+
+    Die Beurteilung ist im Korpus deutlich staerker verdichtet als der Befund
+    (Median 4 Woerter). Es wird daher hoechstens ein Satz uebernommen; nur wenn
+    keine belastbare Evidenz vorliegt, greift die kuratierte Standardzeile.
+    """
+    for counts, total, min_support in ((question_counts, question_total, 3),
+                                       (question_counts, question_total, 2),
+                                       (region_counts, region_total, 4)):
+        chosen = select_template(counts, global_counts, total, global_total,
+                                 limit=4, min_support=min_support, min_share=0.02, min_lift=1.1)
+        for item in chosen:
+            # Die Beurteilung muss die Fragestellung beantworten. Ein haeufiger,
+            # aber thematisch unbezogener Negativsatz ("Keine Perforation." bei
+            # der Frage nach einer Entzuendung) ist dafuer untauglich.
+            if len(item['text'].split()) <= 13 and question_affinity(item['text'], question):
+                return item['text'], 'Korpus', item['count']
+    return IMPRESSION_BY_QUESTION.get(question, IMPRESSION_DEFAULT), 'kuratiert', 0
 
 
 def build(csv_path, out_dir):
@@ -209,6 +231,15 @@ def build(csv_path, out_dir):
 
     # --- Normalsaetze zaehlen ---
     region_phrases, region_totals = collect(records, ['modality', 'region'], 'findings')
+    # Beurteilungen getrennt zaehlen: sie sind kuerzer und beantworten die Frage.
+    impression_phrases, impression_totals = collect(
+        records, ['modality', 'region', 'question_category'], 'impression')
+    impression_region, impression_region_totals = collect(
+        records, ['modality', 'region'], 'impression')
+    global_impressions = collections.Counter()
+    for counter in impression_region.values():
+        global_impressions.update(counter)
+    global_impression_total = sum(impression_region_totals.values())
     question_phrases, question_totals = collect(
         records, ['modality', 'region', 'question_category'], 'findings')
     global_phrases = collections.Counter()
@@ -254,6 +285,12 @@ def build(csv_path, out_dir):
             continue
         chosen = order_for_question(chosen, question)
         findings = ' '.join(item['text'] for item in chosen)
+        impression, impression_basis, impression_count = compose_impression(
+            impression_phrases[(modality, region, question)],
+            impression_totals[(modality, region, question)],
+            impression_region[(modality, region)],
+            impression_region_totals[(modality, region)],
+            global_impressions, global_impression_total, question)
         evidence = min(item['count'] for item in chosen)
         level = 'hoch' if evidence >= 20 else 'mittel' if evidence >= 5 else 'orientierend'
         slug = re.sub(r'[^a-z0-9]+', '-',
@@ -267,7 +304,9 @@ def build(csv_path, out_dir):
             'question': question,
             'title': 'Standard-Normalbefund · korpusbasiert',
             'findings': findings,
-            'impression': IMPRESSION_BY_QUESTION.get(question, IMPRESSION_DEFAULT),
+            'impression': impression,
+            'impression_basis': impression_basis,
+            'impression_count': impression_count,
             'sentences': chosen,
             'evidence_basis': basis,
             'evidence_count': evidence,

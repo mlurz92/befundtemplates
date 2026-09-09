@@ -12,9 +12,19 @@
   // die App weicht bei der Ausfuehrung aber automatisch auf ein gleichwertiges
   // freies Modell aus.
   const HARNESS_GATED_IDS = new Set(['thinkingmachines/inkling-small:free','thinkingmachines/inkling:free']);
-  // Bevorzugte freie Ausweichmodelle: Tool-Calling und JSON-Schema faehig,
-  // ohne Harness-Beschraenkung.
-  const FALLBACK_MODEL_IDS = ['nvidia/nemotron-3-super-120b-a12b:free','google/gemma-4-31b-it:free','nex-agi/nex-n2.5-pro:free','google/gemma-4-26b-a4b-it:free','dots-studio/dots-3-note-preview:free'];
+  // Bevorzugte freie Ausweichmodelle. Die Reihenfolge stammt aus einer Messung
+  // aller kostenlosen OpenRouter-Modelle mit der echten Aufgabe dieser Anwendung
+  // (siehe README, Abschnitt 10) und nicht aus den Katalogangaben: Modelle, die
+  // `response_format` und `tools` fuehren, halten das Format haeufig trotzdem
+  // nicht ein. Die beiden Gemma-4-Endpunkte standen im Katalog, antworteten beim
+  // Aufruf aber mit HTTP 404 und sind deshalb entfernt.
+  const FALLBACK_MODEL_IDS = [
+    'inclusionai/ling-3.0-flash-sante:free',                 // schnellste brauchbare Antwort, medizinisch getunt
+    'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free',
+    'nex-agi/nex-n2.5-pro:free',
+    'nex-agi/nex-n2.5-mini:free',
+    'nvidia/nemotron-3-super-120b-a12b:free'                 // nur ueber den Reparaturpass brauchbar
+  ];
   const DEFAULT_MODEL = FALLBACK_MODEL_IDS[0];
   const HARNESS_ONLY_IDS = HARNESS_GATED_IDS;
   const OUTPUT_SCHEMA = {
@@ -286,10 +296,185 @@
   }
 
   function tokenize(text){return String(text||'').match(/\s+|[\p{L}\p{N}]+(?:[.,]\d+)?|[^\s\p{L}\p{N}]/gu)||[];}
+  // ==========================================================================
+  // Stil-Engine
+  //
+  // Die Stilanker stammen aus der quantitativen Auswertung des 11.796-Befunde-
+  // Korpus: Befundsatz Median 6 Woerter (P90 17), Beurteilungssatz Median 4
+  // (P90 13), Beurteilung rund 14 % der Befundlaenge. Es sind Richtwerte, keine
+  // Quoten - ein klinisch notwendiger Satz darf laenger sein. Die Engine prueft
+  // deshalb auf Ausreisser und meldet, sie erzwingt keine Zahlen.
+  // ==========================================================================
+  const STYLE_LIMITS = {
+    findingsP90: 17, findingsHard: 26,
+    impressionP90: 13, impressionHard: 20,
+    impressionRatio: 0.55           // Beurteilung/Befund; Korpusmedian 0.14
+  };
+
+  // Wendungen, die im Korpus nicht vorkommen und Lehrbuchprosa markieren.
+  const FILLER_PATTERNS = [
+    [/\bes (?:zeigt|zeigen) sich (?:hier|dabei|nunmehr)\b/gi, 'Fuellkonstruktion'],
+    [/\bwie (?:bereits )?(?:oben |zuvor )?(?:erwaehnt|erwähnt|beschrieben)\b/gi, 'Rueckverweis'],
+    [/\b(?:des Weiteren|darüber hinaus|ferner|zudem noch|letztendlich|grundsätzlich|bekanntermassen|bekanntermaßen)\b/gi, 'Uebergangsfloskel'],
+    [/\bist (?:sehr )?(?:gut|deutlich) (?:zu erkennen|erkennbar|sichtbar)\b/gi, 'Beobachterformel'],
+    [/\bin der vorliegenden Untersuchung\b/gi, 'Selbstbezug'],
+    [/\b(?:zusammenfassend|abschliessend|abschließend) (?:lässt sich|kann) \w+/gi, 'Essayformel'],
+    [/\bes (?:ist|wäre) (?:festzuhalten|anzumerken|zu erwähnen)\b/gi, 'Essayformel'],
+    [/\bkann nicht ausgeschlossen werden, dass\b/gi, 'Weichmacher']
+  ];
+
+  // "Kein Nachweis" bezeichnet die Nichtdarstellung einer Struktur,
+  // "Keine Hinweise auf" das Fehlen von Zeichen eines Prozesses.
+  const PROCESS_NOUNS = /(entzündung|infektion|infekt|malignität|metastasierung|blutung|ischämie|rezidivierung|progression|reaktivierung|abszedierung|dissemination)/i;
+  const STRUCTURE_NOUNS = /(fraktur|erguss|zyste|herd|raumforderung|läsion|stenose|thrombus|konkrement|osteolyse|rundherd|infiltrat)/i;
+
+  function splitSentences(text){
+    return String(text||'')
+      .split(/(?<=[.!?])\s+/)
+      .map(part=>part.trim())
+      .filter(Boolean);
+  }
+  function wordCount(sentence){return (String(sentence||'').match(/[\wÄÖÜäöüßäöüß-]+/g)||[]).length;}
+  function median(values){
+    if(!values.length)return 0;
+    const sorted=values.slice().sort((a,b)=>a-b);
+    const mid=sorted.length>>1;
+    return sorted.length%2?sorted[mid]:(sorted[mid-1]+sorted[mid])/2;
+  }
+  function percentile(values,p){
+    if(!values.length)return 0;
+    const sorted=values.slice().sort((a,b)=>a-b);
+    return sorted[Math.min(sorted.length-1,Math.floor(p*sorted.length))];
+  }
+
+  function styleMetrics(findings,impression){
+    const f=splitSentences(findings).map(wordCount);
+    const i=splitSentences(impression).map(wordCount);
+    const fw=f.reduce((a,b)=>a+b,0), iw=i.reduce((a,b)=>a+b,0);
+    return {
+      findingsSentences:f.length, impressionSentences:i.length,
+      findingsWords:fw, impressionWords:iw,
+      findingsMedian:median(f), impressionMedian:median(i),
+      findingsP90:percentile(f,0.9), impressionP90:percentile(i,0.9),
+      findingsMax:f.length?Math.max(...f):0, impressionMax:i.length?Math.max(...i):0,
+      ratio:fw?Number((iw/fw).toFixed(2)):0
+    };
+  }
+
+  function styleFinding(type,label,detail,severity='warning'){return {type,label,detail,severity};}
+
+  // Prueft eine Fassung gegen die Korpus-Stilanker. Liefert konkrete, dem Modell
+  // wieder vorlegbare Beanstandungen - keine Punktzahl.
+  function analyzeStyle(findings,impression){
+    const out=[];
+    const metrics=styleMetrics(findings,impression);
+
+    for(const sentence of splitSentences(findings)){
+      const words=wordCount(sentence);
+      if(words>STYLE_LIMITS.findingsHard){
+        out.push(styleFinding('sentence_too_long','Befundsatz deutlich zu lang',
+          `${words} Wörter (Korpus-P90 ${STYLE_LIMITS.findingsP90}): „${sentence.slice(0,110)}“`,'high'));
+      }else if(words>STYLE_LIMITS.findingsP90&&/\sund\s/i.test(sentence)){
+        out.push(styleFinding('und_chain','Unabhängige Aussagen mit „und“ verkettet',
+          `${words} Wörter: „${sentence.slice(0,110)}“`));
+      }
+    }
+    for(const sentence of splitSentences(impression)){
+      const words=wordCount(sentence);
+      if(words>STYLE_LIMITS.impressionHard){
+        out.push(styleFinding('impression_sentence_too_long','Beurteilungssatz zu lang',
+          `${words} Wörter (Korpus-P90 ${STYLE_LIMITS.impressionP90}): „${sentence.slice(0,110)}“`,'high'));
+      }
+    }
+    if(metrics.findingsWords>=40&&metrics.ratio>STYLE_LIMITS.impressionRatio){
+      out.push(styleFinding('impression_not_condensed','Beurteilung zu wenig verdichtet',
+        `Beurteilung erreicht ${Math.round(metrics.ratio*100)} % der Befundlänge (Korpusmedian 14 %).`,'high'));
+    }
+    const combined=`${findings} ${impression}`;
+    for(const [pattern,label] of FILLER_PATTERNS){
+      const hits=combined.match(pattern);
+      if(hits)out.push(styleFinding('filler',`Nicht korpustypische Wendung (${label})`,
+        `„${hits[0]}“ entfernen oder durch eine direkte Aussage ersetzen.`));
+    }
+    for(const match of combined.matchAll(/Keine\s+Hinweise\s+auf\s+(?:eine[nrs]?\s+|einen\s+)?([\wÄÖÜäöüß-]+)/gi)){
+      if(STRUCTURE_NOUNS.test(match[1]))out.push(styleFinding('negation_logic',
+        'Negationslogik prüfen',`„Keine Hinweise auf ${match[1]}“ betrifft eine Struktur; korpustypisch ist „Kein Nachweis“.`));
+    }
+    for(const match of combined.matchAll(/Kein(?:e[nrs]?)?\s+Nachweis\s+(?:von\s+|eine[rs]?\s+|einen\s+)?([\wÄÖÜäöüß-]+)/gi)){
+      if(PROCESS_NOUNS.test(match[1]))out.push(styleFinding('negation_logic',
+        'Negationslogik prüfen',`„Kein Nachweis ${match[1]}“ betrifft einen Prozess; korpustypisch ist „Keine Hinweise auf“.`));
+    }
+    if(!String(findings||'').trim())out.push(styleFinding('empty_findings','Befund fehlt','Die Fassung enthält keinen Befundtext.','high'));
+    return {metrics,findings:out};
+  }
+
+  // Meaning-erhaltende Typografie-Normalisierung. Aendert ausschliesslich
+  // Leerzeichen und Satzzeichen, niemals Wortlaut, Zahlen oder Reihenfolge.
+  function normalizeTypography(text){
+    let out=String(text||'').replace(/ /g,' ');
+    out=out.replace(/\s+/g,' ');
+    out=out.replace(/\s+([,.;:!?])/g,'$1');
+    out=out.replace(/([,;:])(?=[^\s\d])/g,'$1 ');
+    out=out.replace(/\.{2,}/g,'.');
+    out=out.replace(/(?:,\s*){2,}/g,', ');
+    out=out.replace(/\s*-\s*-\s*/g,' – ');
+    out=out.replace(/\(\s+/g,'(').replace(/\s+\)/g,')');
+    out=out.trim();
+    if(out&&!/[.!?:]$/.test(out))out+='.';
+    return out;
+  }
+
+  // Bittet das Modell um einen reinen Stilkorrekturpass. Der Prompt nennt die
+  // konkreten Beanstandungen und verbietet jede inhaltliche Aenderung; die
+  // Aufrufseite verwirft das Ergebnis, wenn sich der Inhalt doch bewegt hat.
+  function buildStyleRepairRequest(draft,styleReport,model,settings={}){
+    const s=normalizeSettings(settings);
+    const structured=Boolean(model?.supportsStructured);
+    const complaints=styleReport.findings.map((item,index)=>`${index+1}. ${item.label}: ${item.detail}`).join('\n');
+    const system=[
+      'Du bist ein Stilkorrektor für radiologische Befunde im Prof.-Schäfer-Stil.',
+      'Du änderst ausschließlich die Formulierung, niemals den medizinischen Inhalt.',
+      '',
+      'VERBOTEN',
+      '- jede Änderung an Seitenangabe, Lokalisation, Segment, Maß, Zahl, Anzahl, Vergleichsangabe, Sicherheitsgrad oder Negation,',
+      '- jedes Weglassen und jedes Hinzufügen einer medizinischen Aussage.',
+      '',
+      'ERLAUBT',
+      '- lange Sätze in mehrere kurze diagnostische Sätze trennen,',
+      '- Füllwörter und Übergangsfloskeln streichen,',
+      '- die Beurteilung verdichten, ohne eine Aussage zu verlieren,',
+      '- „Kein Nachweis“ und „Keine Hinweise auf“ korrekt zuordnen.',
+      '',
+      structured?'Antworte strikt im vorgegebenen JSON-Schema.':'Antworte im Format ===BEFUND=== / ===BEURTEILUNG=== / ===ÄNDERUNGEN=== / ===BEWAHRT=== / ===KONFLIKTE===.'
+    ].join('\n');
+    const user=[
+      'BEANSTANDUNGEN',complaints,'',
+      'BEFUND',String(draft.findings||''),'',
+      'BEURTEILUNG',String(draft.impression||''),'',
+      'Gib beide Abschnitte vollständig und stilistisch korrigiert zurück. Der medizinische Inhalt bleibt identisch.'
+    ].join('\n');
+    const body={model:model?.id||s.modelId,messages:[{role:'system',content:system},{role:'user',content:user}],
+      temperature:0.1,max_tokens:s.maxTokens};
+    if(structured)body.response_format={type:'json_schema',json_schema:{name:'radiology_style_fix',strict:true,schema:OUTPUT_SCHEMA}};
+    const provider=providerSettings(s,structured);
+    if(Object.keys(provider).length)body.provider=provider;
+    return body;
+  }
+
+  // Ein Stilkorrekturpass darf den Inhalt nicht bewegen. Geprueft wird mit
+  // demselben Consistency Guard, der auch die KI-Aenderung absichert.
+  function styleRepairIsSafe(before,after){
+    const conflicts=analyzeConsistency(before,after,'').filter(item=>(
+      item.type==='laterality_change'||item.type==='number_change'||item.type==='negation_change'
+      ||item.type==='certainty_change'||item.type==='comparison_invented'
+    ));
+    return {safe:conflicts.length===0,conflicts};
+  }
+
   function buildSemanticDiff(a,b){const A=tokenize(a),B=tokenize(b);if(A.length*B.length>2_000_000)return [{type:'remove',text:String(a||'')},{type:'add',text:String(b||'')}];const rows=Array.from({length:A.length+1},()=>new Uint16Array(B.length+1));for(let i=A.length-1;i>=0;i--)for(let j=B.length-1;j>=0;j--)rows[i][j]=A[i]===B[j]?rows[i+1][j+1]+1:Math.max(rows[i+1][j],rows[i][j+1]);let i=0,j=0,parts=[];const push=(type,text)=>{const last=parts[parts.length-1];if(last&&last.type===type)last.text+=text;else parts.push({type,text});};while(i<A.length&&j<B.length){if(A[i]===B[j]){push('same',A[i]);i++;j++;}else if(rows[i+1][j]>=rows[i][j+1]){push('remove',A[i++]);}else push('add',B[j++]);}while(i<A.length)push('remove',A[i++]);while(j<B.length)push('add',B[j++]);return parts;}
 
   function clone(v){return JSON.parse(JSON.stringify(v));}
   function createVersionStore(original){const base={...clone(original),version:0,label:'Original'};let versions=[base],index=0;return {current:()=>clone(versions[index]),add(v){versions=versions.slice(0,index+1);versions.push({...clone(v),version:versions.length,label:`V${versions.length}`});index=versions.length-1;return this.current();},undo(){if(index>0)index--;return this.current();},redo(){if(index<versions.length-1)index++;return this.current();},reset(){index=0;return this.current();},goTo(i){const n=Number(i);if(Number.isInteger(n)&&n>=0&&n<versions.length)index=n;return this.current();},snapshot(){return {versions:clone(versions),index};},canUndo:()=>index>0,canRedo:()=>index<versions.length-1};}
 
-  return Object.freeze({DEFAULT_MODEL,FALLBACK_MODEL_IDS,HARNESS_GATED_IDS,isHarnessGateError,isHarnessGatedModel,isGatedId,pickFallbackModel,OUTPUT_SCHEMA,HARNESS_TOOLS,RESPONSES_HARNESS_TOOLS,isFreeModel,normalizeModel,sortModels,filterModels,formatPricePerMillion,normalizeSettings,shouldFallbackHarnessTransport,shouldPreferChatHarness,buildEditRequest,buildHarnessRequest,buildHarnessFollowup,buildResponsesHarnessRequest,buildResponsesHarnessFollowup,responseFunctionCalls,parseAIResponse,extractAIResult,completeAIResult,analyzeConsistency,buildSemanticDiff,createVersionStore});
+  return Object.freeze({DEFAULT_MODEL,FALLBACK_MODEL_IDS,HARNESS_GATED_IDS,isHarnessGateError,isHarnessGatedModel,isGatedId,pickFallbackModel,OUTPUT_SCHEMA,HARNESS_TOOLS,RESPONSES_HARNESS_TOOLS,isFreeModel,normalizeModel,sortModels,filterModels,formatPricePerMillion,normalizeSettings,shouldFallbackHarnessTransport,shouldPreferChatHarness,buildEditRequest,buildHarnessRequest,buildHarnessFollowup,buildResponsesHarnessRequest,buildResponsesHarnessFollowup,responseFunctionCalls,parseAIResponse,extractAIResult,completeAIResult,analyzeConsistency,buildSemanticDiff,createVersionStore,STYLE_LIMITS,splitSentences,styleMetrics,analyzeStyle,normalizeTypography,buildStyleRepairRequest,styleRepairIsSafe});
 }));
