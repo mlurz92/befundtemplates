@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light">
   <meta name="theme-color" content="#e30613">
-  <title>Befundbrowser · Intelligence 4.1.3 · Klinikum St. Georg</title>
+  <title>Befundbrowser · Intelligence 4.2.0 · Klinikum St. Georg</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -28,7 +28,7 @@
       <span class="brand-georg">St.GEORG</span>
     </div>
     <div class="department-wrap">
-      <span class="intelligence-pill">INTELLIGENCE · 4.1.3</span>
+      <span class="intelligence-pill">INTELLIGENCE · 4.2.0</span>
       <span class="department">Klinik für Radiologie und Nuklearmedizin</span>
     </div>
     <button class="header-settings glass-button" id="settings-open" type="button" aria-haspopup="dialog" title="OpenRouter KI-Einstellungen">
@@ -41,7 +41,7 @@
       <div class="hero-copy">
         <p class="eyebrow">Befundkorpus Intelligence · CT &amp; MRT · AI Report Workshop</p>
         <h1 id="app-title">KSG <span>Befundbrowser</span></h1>
-        <p class="hero-lead">Klinische Auswahl, corpusbasierter Standard-Normalbefund und anschließend die passendsten Originalbefunde – lokal, nachvollziehbar und ohne Veränderung des Originalkorpus.</p>
+        <p class="hero-lead">Klinische Auswahl, korpusbasierter Standard-Normalbefund und anschließend die passendsten Originalbefunde – lokal, nachvollziehbar und ohne Veränderung des Originalkorpus.</p>
       </div>
       <div class="hero-stats glass-panel" aria-label="Datenbestand">
         <div class="stat"><strong id="stat-total">11.796</strong><span>Originale</span></div>
@@ -85,6 +85,11 @@
               <span class="step-selection" id="region-selection">zuerst Modalität wählen</span>
             </div>
           </div>
+          <label class="search-field glass-input" for="region-search">
+            <span class="sr-only">Region filtern</span>
+            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m21 21-4.35-4.35m2.35-5.15a7.5 7.5 0 1 1-15 0 7.5 7.5 0 0 1 15 0Z"/></svg>
+            <input id="region-search" type="search" autocomplete="off" placeholder="Region suchen …" disabled>
+          </label>
           <div class="option-list compact" id="region-options" aria-live="polite"></div>
         </section>
 
@@ -92,14 +97,14 @@
           <div class="step-head">
             <span class="step-number">3</span>
             <div>
-              <h3 id="step-3-title">Thema</h3>
+              <h3 id="step-3-title">Klinische Angaben</h3>
               <span class="step-selection" id="theme-selection">zuerst Region wählen</span>
             </div>
           </div>
           <label class="search-field glass-input" for="theme-search">
-            <span class="sr-only">Thema filtern</span>
+            <span class="sr-only">Klinische Angaben filtern</span>
             <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m21 21-4.35-4.35m2.35-5.15a7.5 7.5 0 1 1-15 0 7.5 7.5 0 0 1 15 0Z"/></svg>
-            <input id="theme-search" type="search" autocomplete="off" placeholder="Thema suchen …" disabled>
+            <input id="theme-search" type="search" autocomplete="off" placeholder="Indikation suchen …" disabled>
           </label>
           <div class="option-list" id="theme-options" aria-live="polite"></div>
         </section>
@@ -109,7 +114,7 @@
             <span class="step-number">4</span>
             <div>
               <h3 id="step-4-title">Fragestellung</h3>
-              <span class="step-selection" id="question-selection">zuerst Thema wählen</span>
+              <span class="step-selection" id="question-selection">zuerst Indikation wählen</span>
             </div>
           </div>
           <label class="search-field glass-input" for="question-search">
@@ -126,9 +131,9 @@
           <span class="empty-halo" aria-hidden="true"></span>
           <span class="empty-kicker">Aero Clinical Reference</span>
           <h2>Vier kurze Auswahlen.<br><span>Ein präziser Einstieg.</span></h2>
-          <p>Die erste Position ist künftig immer eine corpusbasierte Schäfer-Stil-Normalreferenz. Danach folgen ausschließlich unveränderte Originalbefunde aus dem bereitgestellten Korpus.</p>
+          <p>Die erste Position ist immer ein Standard-Normalbefund, dessen Sätze aus dem Korpus der gewählten Region und Fragestellung stammen. Danach folgen ausschließlich unveränderte Originalbefunde.</p>
           <div class="empty-flow" aria-hidden="true">
-            <span>Modalität</span><b>›</b><span>Region</span><b>›</b><span>Thema</span><b>›</b><span>Fragestellung</span>
+            <span>Modalität</span><b>›</b><span>Region</span><b>›</b><span>Klinische Angaben</span><b>›</b><span>Fragestellung</span>
           </div>
           <div class="empty-reference glass-mini">
             <span class="mini-star">★</span>
@@ -155,14 +160,15 @@
           <section class="reference-provenance" id="reference-provenance" hidden>
             <div class="reference-icon" aria-hidden="true">★</div>
             <div class="reference-copy">
-              <span class="field-label">Corpusbasierte Referenzvorlage</span>
-              <p>Kein Originalbefund von Prof. Schäfer. Deidentifizierte Standard-Normalvorlage aus regions- und fragestellungsspezifischen Corpusmustern.</p>
+              <span class="field-label">Korpusbasierte Vorlage</span>
+              <p>Kein Originalbefund von Prof. Schäfer. Jeder Satz dieser Vorlage ist ein im Korpus tatsächlich verwendeter Negativ- oder Normalsatz der gewählten Region und Fragestellung; die Belegzahl steht jeweils daneben.</p>
             </div>
             <div class="evidence-grid">
-              <div><span>Corpusbasis</span><strong id="reference-evidence">–</strong></div>
-              <div><span>negative Beispiele</span><strong id="reference-negative-evidence">–</strong></div>
-              <div><span>Negativphrasen Region</span><strong id="reference-phrase-count">–</strong></div>
+              <div><span>häufigster Satz belegt in</span><strong id="reference-evidence">–</strong></div>
+              <div><span>ausgewertete Befunde</span><strong id="reference-negative-evidence">–</strong></div>
+              <div><span>Negativphrasen der Gruppe</span><strong id="reference-phrase-count">–</strong></div>
             </div>
+            <ul class="evidence-sentences" id="reference-sentences"></ul>
           </section>
 
           <div class="clinical-strip" id="clinical-strip">
@@ -202,6 +208,8 @@
             </div>
           </details>
 
+          <nav class="result-strip" id="result-strip" aria-label="Trefferliste"></nav>
+
           <footer class="report-footer">
             <div class="report-navigation" aria-label="Weitere passende Beispiele">
               <button id="prev-report" class="nav-button glass-button" type="button" aria-label="Vorheriger Beispielbefund">←</button>
@@ -219,8 +227,9 @@
   </main>
 
   <footer class="page-footer glass-bar">
-    <span>Befundbrowser · Intelligence Layer 4.1.3 · KSG Aero Glass · AI Report Workshop</span>
-    <span id="app-status" role="status" aria-live="polite">Daten werden geladen …</span>
+    <span>Befundbrowser · Intelligence Layer 4.2.0 · KSG Aero Glass · AI Report Workshop</span>
+    <span class="footer-keys" aria-hidden="true"><kbd>←</kbd><kbd>→</kbd> blättern · <kbd>/</kbd> suchen · <kbd>C</kbd> kopieren · <kbd>Esc</kbd> zurücksetzen</span>
+    <span id="app-status" role="status" aria-live="polite">Korpus wird geladen …</span>
   </footer>
 
 
@@ -262,7 +271,7 @@
   <dialog class="glass-modal ai-workshop" id="ai-workshop" aria-labelledby="ai-workshop-title">
     <div class="modal-shell ai-workshop-shell">
       <header class="modal-header ai-workshop-header">
-        <div><p class="eyebrow">Intelligence Level 4.1.3</p><h2 id="ai-workshop-title">AI Report Workshop</h2><p id="ai-workshop-model" class="ai-model-line">OpenRouter · Modell wird geladen</p></div>
+        <div><p class="eyebrow">Intelligence Level 4.2.0</p><h2 id="ai-workshop-title">AI Report Workshop</h2><p id="ai-workshop-model" class="ai-model-line">OpenRouter · Modell wird geladen</p></div>
         <button class="modal-close" id="ai-workshop-close" type="button" aria-label="KI-Werkstatt schließen">×</button>
       </header>
       <div class="ai-privacy-warning" id="ai-privacy-warning"><strong>Vorlagenmodus</strong><span>Nur deidentifizierte Inhalte verwenden. Der ausgewählte Provider kann eigene Datenrichtlinien haben.</span></div>
@@ -299,10 +308,12 @@
 
   <div class="toast glass-toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
-  <script src="data/reports.js"></script>
-  <script src="core.js"></script>
-  <script src="ai-core.js"></script>
-  <script src="app.js"></script>
-  <script src="ai.js"></script>
+  <!-- defer: der 25-MB-Korpus blockiert sonst den ersten Seitenaufbau.
+       Die Ausfuehrungsreihenfolge bleibt bei defer erhalten. -->
+  <script defer src="data/reports.js"></script>
+  <script defer src="core.js"></script>
+  <script defer src="ai-core.js"></script>
+  <script defer src="app.js"></script>
+  <script defer src="ai.js"></script>
 </body>
 </html>

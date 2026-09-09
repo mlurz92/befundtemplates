@@ -10,39 +10,144 @@ Die Bedienlogik lautet:
 
 1. **Modalität:** CT oder MRT
 2. **Untersuchungsregion**
-3. **klinisches Thema**
+3. **Klinische Angaben**
 4. **Fragestellung**
-5. **Normalreferenz an Position 1**, anschließend gerankte Originalbeispiele
+5. **Standard-Normalbefund an Position 1**, anschließend gerankte Originalbeispiele
 
-Zusätzlich enthält Intelligence 4.1.3 eine optionale **AI Report Workshop**. Damit kann die aktuell ausgewählte Vorlage vor dem Kopieren kontrolliert verändert werden. Die KI-Bearbeitung erzeugt ausschließlich einen temporären Entwurf; der Corpus selbst bleibt unverändert.
+Zusätzlich enthält Intelligence 4.2.0 eine optionale **AI Report Workshop**. Damit kann die aktuell ausgewählte Vorlage vor dem Kopieren kontrolliert verändert werden. Die KI-Bearbeitung erzeugt ausschließlich einen temporären Entwurf; der Corpus selbst bleibt unverändert.
 
 ---
 
-## 2. Corpus und klinische Datenlogik
+## 2. Korpus und klinische Datenlogik
 
-Aktueller Build:
+Aktueller Build (`taxonomy_version 2026-09-09-intelligence-4-2`):
 
-- **11.796 Originaldatensätze**
-- **7.367 MRT**
-- **4.429 CT**
-- **1.701 Standard-Normalreferenzen**
-- exakt eine Normalreferenz für jede im Corpus vorkommende Kombination aus **Modalität × Region × kanonisierter Fragestellung**
-- **3.375 Modalität–Region–Thema–Fragestellung-Auswahlgruppen**
-- **11.083/11.796 Fälle (94,0 %)** mit kuratiertem klinischem Thema
-- **713 Fälle** bleiben bewusst generisch, wenn eine spezifischere Einordnung nicht ausreichend sicher ist
-- **27 exakte Dubletten** bleiben erhalten und werden lediglich im Ranking nachgeordnet
+| Kennzahl | Wert |
+|---|---:|
+| Originaldatensätze | 11.796 |
+| MRT | 7.367 |
+| CT | 4.429 |
+| Untersuchungsregionen | 33 |
+| Kategorien Klinische Angaben | 46 |
+| Kanonische Fragestellungen | 21 |
+| Auswahlkombinationen (Blätter) | 1.233 |
+| davon mit nur einem Treffer | 38 (3,1 %) |
+| Median Vorlagen je Kombination | 5 |
+| Standard-Normalbefunde | 337 |
+| exakte Dubletten (nur nachgeordnet) | 33 |
+
+Die Sektionserkennung trennt 9.476 Befunde über das explizite Schema,
+2.108 über das ältere Markerschema ohne Doppelpunkt und
+212 heuristisch.
+
+### 2.0 Normalisierung des CSV-Exports
+
+Der RIS-Export ersetzt jedes Komma durch `/`. Die Rückführung unterscheidet drei Klassen:
+
+| Klasse | Beispiel | Ergebnis |
+|---|---|---|
+| Listenkomma | `Leber/ Milz` | `Leber, Milz` |
+| Dezimalkomma vor Einheit | `1/5 Tesla`, `2/2 cm` | `1,5 Tesla`, `2,2 cm` |
+| echte Notation | `LWK 4/5`, `ng/ml`, `12/2023` | unverändert |
+
+Ein pauschales Ersetzen würde `1/5 Tesla` zu `1, 5 Tesla` und `ng/ml` zu `ng, ml` verfälschen.
 
 ### 2.1 Originalbefund vs. Normalreferenz vs. KI-Entwurf
 
 Die Anwendung unterscheidet strikt drei Texttypen:
 
-- **Originalbefund:** unveränderter Datensatz aus dem Schäfer-Corpus
-- **Schäfer-Stil · Standard-Normalbefund:** corpusbasierte, deidentifizierte Referenzvorlage; kein Originalzitat von Prof. Schäfer
+- **Originalbefund:** unveränderter Datensatz aus dem Schäfer-Korpus
+- **Standard-Normalbefund:** korpusbasierte, deidentifizierte Vorlage. Jeder Satz ist ein im Korpus tatsächlich verwendeter Negativ- oder Normalsatz der gewählten Gruppe; kein zusammenhängendes Originalzitat von Prof. Schäfer
 - **KI-Entwurf:** temporäre, vom Benutzer ausgelöste Transformation einer ausgewählten Vorlage
 
 Diese Trennung wird auch in der Oberfläche sichtbar gekennzeichnet.
 
 ---
+
+### 2.2 Kategorisierung
+
+Die vier Ebenen werden deterministisch aus dem Datensatz abgeleitet:
+
+| Ebene | Quelle | Verfahren |
+|---|---|---|
+| Modalität | Feld `Modalität` | erstes Token (`MR\SR` → MRT), nur CT und MRT |
+| Untersuchungsregion | Feld `Studienbeschreibung` | Regelwerk über den RIS-Protokollnamen |
+| Klinische Angaben | Abschnitt `Klin. Angaben` | kontrolliertes Vokabular, inkl. ICD-10-Kodes |
+| Fragestellung | Abschnitt `Fragestellung` | kontrolliertes Vokabular |
+
+Die **Region** stammt bewusst aus dem Protokollnamen und nicht aus einer Textheuristik
+über den Befund: Der Protokollname beschreibt die tatsächlich gefahrene Untersuchung.
+Die 343 Protokollvarianten (`Becken Prostata`, `Becken^Prostata`, `Becken_neu^Prostata`)
+werden zuvor normalisiert; RIS-Abkürzungen werden expandiert, damit
+`Hals+Tho.+OB ven.` als Hals-Thorax-Oberbauch-Untersuchung erkannt wird.
+
+Die **klinischen Angaben** werden gestuft ausgewertet: zuerst das Feld selbst, dann
+Titel, dann Fragestellung. Alleinstehende ICD-10-Kodes (`C34.1 rechts.`) werden auf
+die Entität abgebildet.
+
+**Das eigentliche Problem der Vorversion war die Fragestellung.** Sie wurde nahezu als
+Freitext durchgereicht: 2.893 verschiedene Formulierungen, davon der weit überwiegende
+Teil genau einmal. Als Navigationsebene war das wertlos, weil die Auswahl auf eine
+einzige Vorlage führte. Der Freitext bleibt als `question_raw` am Datensatz erhalten und
+wird in der Vorlage angezeigt; für die Navigation wird auf 21 kanonische Fragestellungen
+abgebildet.
+
+Zusätzlich werden seltene Kategorien **innerhalb ihres Pfades** gebündelt: Klinische
+Angaben mit weniger als 4 Fällen je Region werden zu *Weitere Indikationen*,
+Fragestellungen mit weniger als 3 Fällen je Knoten zu *Weitere Fragestellungen*. Eine
+Auswahl, die auf genau einen Treffer führt, ist als Navigationsebene keine Hilfe.
+
+Wirkung auf die Sackgassen-Quote:
+
+| | vorher | jetzt |
+|---|---:|---:|
+| Auswahlkombinationen | 3.375 | 1.233 |
+| davon mit genau einem Treffer | 2.336 (69,2 %) | 38 (3,1 %) |
+| Median Vorlagen je Kombination | 1 | 5 |
+
+### 2.3 Standard-Befundvorlagen
+
+Die Vorlagen der Vorversion waren generisch: 1.701 Referenzen bestanden aus lediglich
+35 verschiedenen Texten, 633 davon ohne jede Korpusevidenz.
+
+Die Vorlagen werden jetzt **aus dem Korpus abgeleitet**. Je Modalität, Region und
+Fragestellung werden die tatsächlich verwendeten Negativ- und Normalsätze gezählt und
+die typischsten zusammengesetzt. Erfunden wird nichts; jeder Satz stammt wörtlich aus
+dem Korpus und wird mit seiner Belegzahl angezeigt.
+
+Vier Auswahlkriterien:
+
+1. **Zulässige Satzform.** Nur zwei Formen werden akzeptiert: ein Satz, der mit einer
+   Verneinung oder Normalitätsaussage beginnt (`Keine Sekretverhalte.`), oder eine
+   kopulative Normalaussage (`Die Prostatakapsel ist intakt.`). Eine Verneinung
+   irgendwo im Satz genügt ausdrücklich nicht — *„Das Hauptfragment, in dem keine
+   Schrauben verankert sind, ist abgerutscht."* enthält `keine` und ist dennoch ein
+   positiver pathologischer Befund. Sätze mit Maßen, Datumsangaben, Seitenangaben,
+   Vergleichsbezug oder einschränkenden Konjunktionen (`aber`, `jedoch`) entfallen.
+2. **Distinktivität statt Häufigkeit.** `Kein Aszites.` ist in fast jeder Region häufig.
+   Gewertet wird der Anteil in der Gruppe gegenüber dem Anteil im Gesamtkorpus, damit
+   keine abdominellen Sätze in eine NNH-Vorlage geraten.
+3. **Dublettenfreiheit.** Über Stemming, Synonymklassen und Kompositazerlegung gelten
+   `Keine Lungenmetastasen.` / `Keine pulmonalen Metastasen.` und `Normales Knochenmark.`
+   / `Unauffälliges Knochenmark.` als dieselbe Aussage.
+4. **Belastbare Evidenz vor genauer Passung.** Trägt die fragestellungsgenaue Evidenz
+   nicht, wird die breitere Regionsevidenz verwendet. Eine Vorlage aus Sätzen, die je
+   genau einmal im Korpus stehen, ist kein Standard. Die verwendete Basis
+   (`Fragestellung` oder `Region`) steht in der Oberfläche.
+
+Der Zielbefund der Fragestellung steht am Anfang der Vorlage, nicht hinter einem
+Organinventar.
+
+| | vorher | jetzt |
+|---|---:|---:|
+| Vorlagen | 1.701 | 337 |
+| verschiedene Vorlagentexte | 35 | 337 |
+| Vorlagen ohne Korpusevidenz | 633 | 0 |
+| Abdeckung der Auswahlkombinationen | – | 100 % |
+
+Evidenzniveau: 26 hoch, 86 mittel, 225 orientierend. Das Niveau
+wird an der Vorlage ausgewiesen; die ärztliche Endkontrolle bleibt in jedem Fall
+erforderlich.
 
 ## 3. Start der Anwendung
 
@@ -58,7 +163,7 @@ Es gibt **kein externes JavaScript-Framework und kein CDN**. Die Corpusdaten lie
 
 ---
 
-## 4. Intelligence 4.1.3 · AI Report Workshop
+## 4. Intelligence 4.2.0 · AI Report Workshop
 
 Bei einem ausgewählten Bericht steht die Aktion **„Mit KI anpassen“** zur Verfügung.
 
@@ -67,12 +172,9 @@ Bei einem ausgewählten Bericht steht die Aktion **„Mit KI anpassen“** zur V
 1. Ausgangsbefund und Ausgangsbeurteilung werden als unveränderte Referenz angezeigt.
 2. Der Benutzer formuliert eine explizite Änderungsanweisung.
 3. Die App sendet nur den erforderlichen Kontext an OpenRouter:
-   - Modalität
-   - Region
-   - Thema
-   - kanonisierte Fragestellung
-   - Befund
-   - Beurteilung
+   - Modalität, Region, Kategorie der klinischen Angaben, kanonische Fragestellung
+   - klinische Angaben und Fragestellung im Originalwortlaut sowie der Untersuchungstitel
+   - Befund und Beurteilung
    - Änderungsanweisung
 4. Das Modell erzeugt eine vollständige neue Fassung.
 5. Ein lokaler **Consistency Guard** analysiert sensible Veränderungen.
@@ -82,16 +184,34 @@ Bei einem ausgewählten Bericht steht die Aktion **„Mit KI anpassen“** zur V
 
 ### 4.2 Edit Contract
 
-Der Systemprompt fordert das Modell auf:
+Der Systemprompt trennt zwei Regelblöcke und stellt den medizinischen Inhalt ausdrücklich über den Stil.
 
-- ausschließlich die explizit verlangte medizinische Änderung vorzunehmen,
-- alle übrigen Befundtatsachen zu erhalten,
-- Lateralisierung, Lokalisation, Maße, Anzahl, Vergleichsdynamik und diagnostische Sicherheit nicht eigenmächtig zu verändern,
-- relevante Negativbefunde zu erhalten,
-- Befund und Beurteilung konsistent zu halten,
-- final kompakt im Schäfer-Stil zu formulieren.
+**Änderungsregeln**
 
-Der lokale Consistency Guard ersetzt **keine ärztliche Endkontrolle**.
+- ausschließlich die von der Anweisung verlangten medizinischen Sachverhalte ändern,
+- jede übrige Befundtatsache semantisch exakt erhalten: Seitenangabe, Lokalisation, Segment, Maße, Anzahl, Vergleichsdynamik, diagnostische Sicherheit, relevante Negativbefunde,
+- nichts hinzuerfinden: keine Pathologie, keine Voruntersuchung, kein Vergleichsintervall, keine Methodik, keine Sequenzliste, keine Serien- oder Bildnummer, keine Empfehlung, kein Normalbefund-Inventar,
+- Unsicherheitsgrade (`V. a.`, `suspekt`, `am ehesten`, `DD`) weder verstärken noch abschwächen,
+- Befund und Beurteilung widerspruchsfrei halten,
+- immer die vollständige Fassung ausgeben, nicht nur die geänderte Passage.
+
+**Stilregeln (quantitativ aus dem Korpus abgeleitet)**
+
+| Regel | Anker |
+|---|---|
+| Satzlänge Befund | typischerweise 6–17 Wörter (Median 6, P90 17) |
+| Satzlänge Beurteilung | typischerweise 4–13 Wörter (Median 4, P90 13) |
+| Verdichtung der Beurteilung | Richtwert etwa ein Siebtel der Befundlänge |
+| Satzbau | eine eigenständige diagnostische Aussage pro Satz, nominaler Stil |
+| Reihenfolge | diagnostisches Ziel und gültiger Vergleich früh |
+| Maße | unmittelbar bei dem Befund, den sie quantifizieren |
+
+Zwei Regeln adressieren wiederkehrende Fehler generischer Modelle:
+
+- **Negationslogik:** `Kein Nachweis ...` bezeichnet die direkte Nichtdarstellung der genannten Struktur, `Keine Hinweise auf ...` das Fehlen von Zeichen eines Prozesses. Die Wendungen sind keine Synonyme und werden nicht gegeneinander ausgetauscht.
+- **Koordination:** unabhängige Aussagen werden nicht mechanisch mit `und` verkettet; `und` bleibt dort, wo die Grammatik es verlangt. Echte medizinische Schrägstrich-Notation (`C5/6`, `LWK 5/SWK 1`, `ng/ml`) bleibt erhalten.
+
+Abschließend fordert der Prompt eine stille Selbstprüfung: Jede Seitenangabe, jedes Maß, jede Zahl, jede Vergleichsangabe und jeder Sicherheitsgrad muss entweder unverändert oder von der Anweisung ausdrücklich verlangt sein.
 
 ---
 
@@ -357,60 +477,109 @@ Wenn die gewählten Datenschutzanforderungen mit dem Modell/Provider nicht verei
 
 ---
 
-## 12. KSG Aero Glass UI
+## 12. Oberfläche und Bedienung
 
-Die Oberfläche orientiert sich an der Rot-/Weiß-/Mineral-Grundsprache des Klinikum St. Georg und kombiniert diese mit einem eigenständigen Aero-Glass-Layer:
+### 12.1 Navigation
 
-- transluzente Glasebenen
-- selektiver Backdrop-Blur
-- Lichtreflexe und Sheen
-- animierte Tiefenringe
-- Pointer-Parallax
-- AI-Orb
-- Diff-Reveal
-- animierte Modellkarten
-- FREE-Modelle mit hervorgehobener Glaskante
-- Hover-/Focus-Tooltips
+Die vier Auswahlebenen bauen aufeinander auf; jede Ebene zeigt nur Optionen, die im
+gewählten Pfad tatsächlich belegt sind, mit der jeweiligen Fallzahl. Alle drei
+Textebenen (Region, Klinische Angaben, Fragestellung) sind durchsuchbar; `Enter`
+übernimmt den ersten Treffer.
 
-Entsprechend der expliziten Projektvorgabe ist **kein `prefers-reduced-motion`-Fallback** implementiert.
+Innerhalb einer Auswahl steht eine **Trefferleiste** zur Verfügung: `★` ist der
+Standard-Normalbefund, die Ziffern sind die nach Repräsentativität sortierten
+Originalbefunde. Damit ist jede Vorlage direkt erreichbar, statt sich durch bis zu
+mehrere hundert Treffer zu klicken.
+
+### 12.2 Tastatur
+
+| Taste | Wirkung |
+|---|---|
+| `←` `→` | vorherige / nächste Vorlage |
+| `Home` `End` | erste / letzte Vorlage der Gruppe |
+| `/` | Fokus in das Suchfeld der aktuell offenen Ebene |
+| `C` | Gesamtbefund kopieren |
+| `Esc` | Suchfeld verlassen, sonst Auswahl zurücksetzen |
+
+### 12.3 Verlinkbare Auswahl
+
+Eine vollständige Auswahl wird in den URL-Fragmentbezeichner geschrieben
+(`#MRT/Becken%20%2F%20Prostata/Prostatakarzinom/Therapie-%20%2F%20OP-Planung`) und
+beim Laden wiederhergestellt. Ein Kollege erhält damit über einen Link genau die
+Vorlage, die gemeint war. Ungültige oder veraltete Fragmente werden ignoriert.
+
+### 12.4 Bewegung und Effekte
+
+Die Oberfläche nutzt durchgehend Bewegung: Zeigerparallaxe im Hintergrund,
+gestaffelt einlaufende Optionslisten, ein sich füllender Fortschrittsbalken,
+quittierte Schrittabschlüsse, Einblenden des Berichts beim Wechsel, animierte
+Trefferleiste, Zähl-Animation der Kennzahlen, Kopier-Rückmeldung direkt am Auslöser
+und ein Skeleton-Zustand, solange der Korpus lädt.
+
+`prefers-reduced-motion: reduce` schaltet diese Effekte auf nahezu null Dauer
+zurück, ohne Funktionen zu entfernen. Die Zeigerparallaxe bleibt davon bewusst
+ausgenommen, weil sie ausdrücklich gewünscht ist.
+
+### 12.5 Ladeverhalten
+
+Der Korpus ist rund 25 MB groß. Alle Skripte werden mit `defer` geladen, damit die
+Oberfläche vor dem Korpus erscheint; die Ausführungsreihenfolge bleibt dabei
+erhalten. Bis `BEFUND_DATA` verfügbar ist, zeigen die Kennzahlen einen
+Skeleton-Zustand. Gemessen im Chromium-Test: erster Seitenaufbau nach rund 1,4 s.
 
 ---
 
-## 13. Source-Paket
+## 13. Paketinhalt und Neuaufbau
 
-Das Source-Paket enthält:
+Das ausgelieferte Paket ist zugleich Runtime und Quellpaket:
 
-- `app/` – vollständige Runtime
-- `corpus/` – bereinigte Ausgangs-CSV
-- `tools/build_data.py` – deterministische Corpus-Build-Pipeline
-- `tests/` – Python-, JavaScript- und Chromium-E2E-Tests
-- `qa/` – visuelle QA-Screenshots
-- `docs/` – soweit im Build vorhanden, Design-/Implementierungsunterlagen
-- `README.md` – diese Dokumentation
-
-### Corpus neu bauen
-
-```bash
-python tools/build_data.py \
-  --input corpus/aschaefer_MR_CT_bereinigt.csv \
-  --output-dir app/data
+```
+Befundbrowser_KSG_Intelligence4_2_0/
+├── index.html            Oberfläche
+├── styles.css            KSG Aero Glass, Animationen, Bewegungsreduktion
+├── core.js               Auswahl-, Filter- und Sortierlogik
+├── app.js                Navigation, Viewer, Tastatur, Deep-Links
+├── ai-core.js            Prompts, Edit Contract, Parser, Consistency Guard
+├── ai.js                 OpenRouter-Transport, Modellkatalog, KI-Werkstatt
+├── data/
+│   ├── reports.js        Korpus und Standard-Normalbefunde (rund 25 MB)
+│   └── build-summary.json Kennzahlen des Builds
+├── tools/                Build-Pipeline (siehe unten)
+├── README.md             diese Dokumentation
+└── README.txt            Kurzhinweis
 ```
 
-### Test-Suite
+Es gibt kein Framework, kein Build-Werkzeug und kein CDN. `index.html` ist direkt
+lauffähig.
+
+### Korpus neu bauen
 
 ```bash
-python -m unittest discover -s tests -v
-node tests/core.test.js
-node tests/ai-core.test.js
-node -c app/core.js
-node -c app/app.js
-node -c app/ai-core.js
-node -c app/ai.js
-python tests/e2e_smoke.py
-SCHAEFER_E2E_HARNESS_FALLBACK=1 python tests/e2e_smoke.py
+python3 tools/build_corpus.py <referenz.csv> data
 ```
 
-Der zweite Chromium-Lauf simuliert gezielt die reale OpenRouter-Fehlermeldung `only available on agentic harnesses` am primären Responses-Transport und verifiziert den automatischen Fallback auf den zweiten Tool-Harness **ohne Modellwechsel**.
+Der Build ist deterministisch: gleiche CSV, gleiches Ergebnis. Er schreibt
+`data/reports.js` und `data/build-summary.json` und gibt die Kennzahlen aus.
+
+| Datei | Aufgabe |
+|---|---|
+| `tools/corpus_parse.py` | CSV-Parsing, Sektionserkennung mit und ohne Doppelpunkt, Schrägstrich-Rückführung |
+| `tools/taxonomy_region.py` | Region aus dem RIS-Protokollnamen |
+| `tools/taxonomy_text.py` | kontrolliertes Vokabular für Klinische Angaben und Fragestellung, ICD-10-Zuordnung |
+| `tools/normal_miner.py` | Auswahl der Normalsätze aus Korpusevidenz |
+| `tools/build_corpus.py` | Zusammenbau, Bündelung seltener Kategorien, Ranking, Ausgabe |
+
+### Prüfungen
+
+```bash
+node --check core.js && node --check app.js && node --check ai-core.js && node --check ai.js
+python3 -c "import sys; sys.path.insert(0,'tools'); import build_corpus"
+```
+
+Fachliche Prüfung der erzeugten Vorlagen (jeder Satz muss die Normalprüfung bestehen,
+keine inhaltlichen Dubletten, vollständige Abdeckung der Auswahlkombinationen) erfolgt
+über die Funktionen in `tools/normal_miner.py`; das Vorgehen ist in Abschnitt 2.3
+beschrieben.
 
 ---
 
@@ -569,3 +738,64 @@ Die in 4.1.2 für Inkling eingeführte Logik gilt jetzt für **jedes** Modell, d
 - Gelernte Sperren erscheinen sofort als `HARNESS`-Badge im Modellkatalog; ZDR-Kennzeichnung bleibt dabei erhalten.
 
 **Empirische Grundlage:** Alle 18 kostenlosen OpenRouter-Modelle wurden einzeln gegen die Live-API geprüft. Genau die beiden Inkling-Modelle sind gesperrt; die übrigen 16 sind regulär aufrufbar. Die Seed-Liste bildet exakt diesen Messstand ab — alles Weitere übernimmt die Laufzeiterkennung.
+
+
+---
+
+## 19. Änderungen in Intelligence 4.2.0
+
+Vier Arbeitsschwerpunkte, alle auf Basis der Referenz-CSV neu gebaut.
+
+### 19.1 Kategorisierung
+
+- Region jetzt deterministisch aus dem RIS-Protokollnamen statt aus einer Textheuristik; 343 Protokollvarianten normalisiert, RIS-Abkürzungen expandiert.
+- Regionen-Dubletten der Vorversion zusammengeführt (`Ellenbogen / Bizeps` + `Ellenbogen`, `Hand / Handgelenk / Finger` + `Hand / Handgelenk`, `Hals + Thorax` + `Hals / Thorax`, `Gefäße / Angiographie` + `Gefäße / MR-Angiographie`); Kleinstregionen fachlich zugeordnet.
+- Klinische Angaben auf ein kontrolliertes Vokabular abgebildet, einschließlich alleinstehender ICD-10-Kodes.
+- Fragestellung von 2.893 Freitexten auf 21 kanonische Kategorien abgebildet; der Originalwortlaut bleibt erhalten und wird angezeigt.
+- Seltene Kategorien werden innerhalb ihres Pfades gebündelt. Sackgassen mit genau einem Treffer: von 69,2 % auf 3,1 % gesunken, Median je Kombination von 1 auf 5 gestiegen.
+- Rückführung der Export-Schrägstriche korrigiert: `1/5 Tesla` → `1,5 Tesla`, `2/2 cm` → `2,2 cm`, während `LWK 4/5` und `ng/ml` erhalten bleiben.
+
+### 19.2 Standard-Befundvorlagen
+
+- Vollständig aus Korpusevidenz abgeleitet: 337 Vorlagen mit 337 verschiedenen Texten statt 1.701 Referenzen aus 35 Bausteinen; keine Vorlage ohne Evidenz.
+- Jeder Satz wird mit seiner Belegzahl ausgewiesen.
+- Satzformfilter verhindert, dass ein positiver pathologischer Befund mit Nebensatz-Verneinung in eine Normalvorlage gerät — im Test tatsächlich aufgetreten und behoben.
+- Auswahl nach Distinktivität statt roher Häufigkeit; Dublettenerkennung über Stemming, Synonymklassen und Kompositazerlegung.
+- Bei dünner fragestellungsgenauer Evidenz wird die belastbarere Regionsevidenz verwendet; die Basis wird ausgewiesen.
+- Prüfung über alle 337 Vorlagen: kein Satz verfehlt die Normalprüfung, kein positiver Pathologiemarker ohne führende Verneinung, keine inhaltliche Dublette, 100 % Abdeckung der Auswahlkombinationen.
+
+### 19.3 KI-Prompt
+
+- Systemprompt in Änderungsregeln und Stilregeln getrennt, medizinischer Inhalt ausdrücklich über den Stil gestellt.
+- Stilregeln mit den quantitativen Ankern des Korpus hinterlegt (Satzlängen, Verdichtung der Beurteilung).
+- Negationslogik (`Kein Nachweis` vs. `Keine Hinweise auf`) und Koordinationsregel ergänzt; Erhalt der Schrägstrich-Notation gefordert.
+- Abschließende Selbstprüfung auf Seitenangaben, Maße, Zahlen, Vergleichsangaben und Sicherheitsgrade.
+- Der Kontext enthält jetzt auch klinische Angaben und Fragestellung im Originalwortlaut sowie den Untersuchungstitel.
+
+### 19.4 Oberfläche
+
+- Ebene 3 heißt jetzt `Klinische Angaben` statt `Thema` und entspricht damit dem Quellfeld.
+- Suchfeld für die Region ergänzt; `Enter` übernimmt in allen Suchfeldern den ersten Treffer.
+- Trefferleiste für den direkten Sprung zu jeder Vorlage der Gruppe.
+- Tastatursteuerung: `←` `→`, `Home`, `End`, `/`, `C`, `Esc`.
+- Verlinkbare Auswahl über den URL-Fragmentbezeichner.
+- Neue Animationen: Zähl-Animation der Kennzahlen, Trefferleiste, quittierter Schrittabschluss, Kopier-Rückmeldung am Auslöser, Skeleton während des Ladens. `prefers-reduced-motion` wird respektiert.
+- Skripte mit `defer`: erster Seitenaufbau nach rund 1,4 s statt Blockade durch den 25-MB-Korpus.
+- Behoben: Die Zähl-Animation konnte kurzzeitig negative Werte anzeigen, weil der Zeitstempel von `requestAnimationFrame` vor dem zuvor gelesenen `performance.now()` liegen kann.
+- Angepasst an das neue Datenschema: Herkunftsangaben und Kennzeichnungen der Vorlagen zeigten sonst leere Werte.
+
+### 19.5 Reproduzierbarkeit
+
+Der Korpus wird nicht mehr als Blackbox ausgeliefert. `tools/` enthält den vollständigen Build:
+
+```
+python3 tools/build_corpus.py <referenz.csv> Befundbrowser_KSG_Intelligence/data
+```
+
+| Datei | Aufgabe |
+|---|---|
+| `tools/corpus_parse.py` | CSV-Parsing, Sektionserkennung, Schrägstrich-Rückführung |
+| `tools/taxonomy_region.py` | Region aus dem RIS-Protokollnamen |
+| `tools/taxonomy_text.py` | kontrolliertes Vokabular für Klinische Angaben und Fragestellung |
+| `tools/normal_miner.py` | Auswahl der Normalsätze aus Korpusevidenz |
+| `tools/build_corpus.py` | Zusammenbau, Bündelung, Ranking, Ausgabe |

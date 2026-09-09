@@ -311,3 +311,69 @@ button:focus-visible, input:focus-visible, summary:focus-visible, a:focus-visibl
 @media(max-width:590px){.glass-modal{width:calc(100vw - 12px);max-height:calc(100vh - 12px);border-radius:20px}.modal-shell{max-height:calc(100vh - 14px)}.modal-header{padding:16px}.settings-pane,.ai-workspace-grid,.ai-result-zone{padding-left:13px;padding-right:13px}.model-list{grid-template-columns:1fr}.report-actions{width:100%;flex-direction:column}.report-actions button{width:100%}.result-toolbar{align-items:flex-start;flex-direction:column}.version-controls{width:100%;overflow-x:auto}.ai-result-actions{flex-direction:column}.ai-result-actions button{width:100%}.ai-privacy-warning{align-items:flex-start;flex-direction:column;padding:10px 15px}.ai-context-strip{padding:10px 15px}}
 
 .key-storage-note{display:block;margin-top:6px;color:var(--soft-ink);font-size:9px;line-height:1.45}.key-clear{margin:-6px 0 7px;color:var(--soft-ink)}
+
+/* ============================================================================
+   Intelligence 4.2 · Trefferleiste, Evidenzbelege, Mikrointeraktionen
+   ========================================================================= */
+
+/* --- Trefferleiste: direkter Sprung zu jeder Vorlage der Gruppe ---------- */
+.result-strip { display:flex;gap:6px;align-items:center;overflow-x:auto;overscroll-behavior-x:contain;
+  padding:11px 2px 13px;margin:4px 0 0;scrollbar-width:thin;scroll-behavior:smooth;
+  mask-image:linear-gradient(90deg,transparent,#000 14px,#000 calc(100% - 14px),transparent); }
+.result-strip::-webkit-scrollbar { height:4px; }
+.result-strip::-webkit-scrollbar-thumb { background:rgba(103,109,118,.26);border-radius:999px; }
+.strip-dot { --stagger:0ms;flex:0 0 auto;min-width:27px;height:27px;padding:0 7px;display:grid;place-items:center;
+  border:1px solid rgba(103,109,118,.18);border-radius:9px;background:rgba(255,255,255,.5);
+  color:var(--muted);font:inherit;font-size:11px;font-variant-numeric:tabular-nums;cursor:pointer;
+  transition:transform .2s var(--ease-spring),background .2s ease,border-color .2s ease,color .2s ease,box-shadow .2s ease;
+  animation:stripPop .3s var(--stagger) var(--ease-soft) both; }
+.strip-dot:hover { transform:translateY(-2px) scale(1.06);border-color:rgba(227,6,19,.3);color:var(--ink);
+  background:rgba(255,255,255,.82);box-shadow:0 6px 14px rgba(45,49,57,.08); }
+.strip-dot.is-reference { color:var(--ksg-red);border-color:rgba(227,6,19,.26);background:rgba(255,241,242,.7); }
+.strip-dot.is-current { border-color:transparent;color:#fff;font-weight:600;
+  background:linear-gradient(145deg,#f12531,var(--ksg-red-dark));
+  box-shadow:0 7px 16px rgba(227,6,19,.26),inset 0 1px 0 rgba(255,255,255,.38);transform:scale(1.05); }
+.strip-dot.is-current.is-reference { background:linear-gradient(145deg,#f12531,var(--ksg-red-dark)); }
+@keyframes stripPop { from { opacity:0;transform:translateY(6px) scale(.9); } to { opacity:1;transform:none; } }
+
+/* --- Belegte Korpussätze der Normalvorlage ------------------------------- */
+.evidence-sentences { grid-column:1/-1;list-style:none;margin:11px 0 0;padding:11px 0 0;display:grid;gap:5px;
+  border-top:1px solid rgba(227,6,19,.13); }
+.evidence-sentences li { --stagger:0ms;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:baseline;
+  font-size:11.5px;color:var(--soft-ink);animation:optionRise .4s var(--stagger) var(--ease-soft) both; }
+.evidence-sentences b { color:var(--ksg-red-dark);font-weight:600;font-variant-numeric:tabular-nums;font-size:11px; }
+
+/* --- Kopier-Rückmeldung direkt am Auslöser ------------------------------- */
+.icon-button.is-copied, .primary-button.is-copied { animation:copyPulse .5s var(--ease-spring); }
+.icon-button.is-copied::after, .primary-button.is-copied::after {
+  content:"✓";margin-left:7px;display:inline-block;animation:checkPop .34s var(--ease-spring) both; }
+@keyframes copyPulse { 0% { transform:scale(1); } 42% { transform:scale(1.045); } 100% { transform:scale(1); } }
+@keyframes checkPop { from { opacity:0;transform:scale(.4) rotate(-14deg); } to { opacity:1;transform:none; } }
+
+/* --- Tastaturhinweis ----------------------------------------------------- */
+.footer-keys { display:flex;gap:5px;align-items:center;color:var(--muted);font-size:10.5px;letter-spacing:.01em; }
+.footer-keys kbd { padding:1px 5px;border:1px solid rgba(103,109,118,.24);border-radius:5px;
+  background:rgba(255,255,255,.6);box-shadow:0 1px 0 rgba(103,109,118,.14);font:inherit;font-size:10px; }
+
+/* --- Aufbau der Seite vor dem Laden des Korpus --------------------------- */
+body:not(.is-ready) .hero-stats .stat strong { color:transparent;position:relative;overflow:hidden;border-radius:6px; }
+body:not(.is-ready) .hero-stats .stat strong::after { content:"";position:absolute;inset:0;
+  background:linear-gradient(90deg,rgba(103,109,118,.09),rgba(103,109,118,.17),rgba(103,109,118,.09));
+  background-size:220% 100%;animation:skeletonSweep 1.2s linear infinite; }
+@keyframes skeletonSweep { from { background-position:120% 0; } to { background-position:-120% 0; } }
+.hero-stats .stat strong { font-variant-numeric:tabular-nums; }
+
+/* --- Schrittabschluss sichtbar quittieren -------------------------------- */
+.step.is-complete .step-number::after { content:"";position:absolute;inset:0;border-radius:inherit;
+  box-shadow:0 0 0 0 rgba(227,6,19,.42);animation:stepConfirm .6s var(--ease-soft) 1; }
+@keyframes stepConfirm { to { box-shadow:0 0 0 11px rgba(227,6,19,0); } }
+.step-number { position:relative; }
+
+/* --- Bewegungsreduktion: Orientierung statt Dekoration ------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration:.01ms !important;animation-iteration-count:1 !important;
+    transition-duration:.01ms !important;scroll-behavior:auto !important;
+  }
+  .strip-dot:hover, .modality-button:hover { transform:none; }
+}
