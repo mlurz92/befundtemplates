@@ -413,6 +413,17 @@
     pointerFrame=requestAnimationFrame(()=>{document.documentElement.style.setProperty('--pointer-x',`${targetX.toFixed(2)}px`);document.documentElement.style.setProperty('--pointer-y',`${targetY.toFixed(2)}px`);pointerFrame=0;});
   },{passive:true});
 
+  // Die repräsentativsten Originalbefunde derselben Gruppe dienen der KI-Werkstatt
+  // als Stilreferenz: Sie liefern ausschließlich Formulierung, niemals Inhalt. Die
+  // aktuell angezeigte Vorlage bleibt ausgenommen, damit das Modell nicht seine
+  // eigene Ausgangsfassung zurückgespiegelt bekommt.
+  function styleExamplesFor(report) {
+    return originalReports()
+      .filter((item) => item.id !== report?.id && item.findings && item.impression && !item.duplicate_of)
+      .slice(0, 3)
+      .map((item) => ({ id: item.id, findings: item.findings, impression: item.impression }));
+  }
+
   window.BefundAppBridge = Object.freeze({
     getCurrentReportContext() {
       const report=currentItem(); if(!report) return null; const draft=activeDraftFor(report);
@@ -422,7 +433,8 @@
         clinical: report.clinical || '', questionRaw: report.question_raw || '',
         findings: draft?.findings || report.findings || report.raw || '', impression: draft?.impression || report.impression || '',
         baseFindings: report.findings || report.raw || '', baseImpression: report.impression || '',
-        hasDraft: Boolean(draft), draft: draft ? {...draft} : null, title: report.title || els.title.textContent
+        hasDraft: Boolean(draft), draft: draft ? {...draft} : null, title: report.title || els.title.textContent,
+        styleExamples: styleExamplesFor(report)
       };
     },
     applyDraft(draft) {

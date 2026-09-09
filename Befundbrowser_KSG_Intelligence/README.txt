@@ -1,4 +1,4 @@
-KSG BEFUNDBROWSER · INTELLIGENCE 5.0
+KSG BEFUNDBROWSER · INTELLIGENCE 5.0.1
 ====================================
 
 Klinik für Radiologie und Nuklearmedizin · Klinikum St. Georg Leipzig

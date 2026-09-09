@@ -74,6 +74,16 @@
     const meta=String(error?.openRouter?.message||'');
     return /only available on agentic harnesses|agentic harness(?:es)? only|available on agentic harnesses/i.test(`${message} ${meta}`);
   }
+  // OpenRouter beantwortet nicht bedienbare Parameterkombinationen und durch die
+  // Datenschutzeinstellung ausgeschlossene Anbieter mit HTTP 404 statt mit einer
+  // Modellfehlermeldung. Das ist kein Transportproblem, sondern heisst: dieses
+  // Modell ist unter den aktuellen Bedingungen nicht erreichbar.
+  function isNotRoutableError(error){
+    const message=`${error?.message||''} ${error?.openRouter?.message||''}`;
+    return Number(error?.status)===404
+      || /no endpoints? (?:found|available)/i.test(message)
+      || /data policy|guardrail restrictions/i.test(message);
+  }
   function isHarnessGatedModel(model,gatedSet){
     const id=String(typeof model==='string'?model:(model?.id||''));
     return isGatedId(id,gatedSet);
@@ -110,7 +120,10 @@
     'Negationslogik strikt trennen: "Kein Nachweis ..." bedeutet die direkte Nichtdarstellung der genannten Struktur, "Keine Hinweise auf ..." das Fehlen von Zeichen eines Prozesses. Die beiden Wendungen sind keine Synonyme.',
     'Unabhängige Aussagen nicht mechanisch mit "und" verketten: getrennte kurze Sätze oder eine knappe Parallelkonstruktion. "und" bleibt dort, wo die Grammatik es verlangt.',
     'Echte medizinische Schrägstrich-Notation bleibt erhalten (C5/6, LWK 5/SWK 1, ng/ml).',
-    'Keine Lehrbuchprosa, keine Füllwörter, keine Wiederholung der Fragestellung im Befundtext.'
+    'Keine Lehrbuchprosa, keine Füllwörter, keine Wiederholung der Fragestellung im Befundtext.',
+    'Verboten, weil im Korpus praktisch nicht vorkommend: "Es zeigt sich"/"Es zeigen sich" (2 von 11.796 Befunden), "Kein Anhalt für" (0), "Zusammenfassend" in der Beurteilung (0), "DD:" mit Doppelpunkt (1; ausschreiben als "Differenzialdiagnostisch"), Maßangaben mit Dezimalpunkt (0; immer Komma, etwa 1,3 cm), hochgestelltes Hoch-minus-drei (0; korpustypisch ist "x 10-3 mm²/s").',
+    'Erlaubt und korpustypisch, also nicht "korrigieren": "Es finden sich" (62 Befunde), "Es besteht/bestehen" (284), "DD" ohne Doppelpunkt (157), "metastasenverdächtig" (772).',
+    'Im Fließtext überwiegt "Herd" gegenüber "Läsion" (2.278 zu 1.251 Nennungen); direkte Lokalisation statt "Im Bereich des/der" (nur 61 von 11.796 Befunden).'
   ];
   const EDIT_RULES = [
     'Ändere ausschließlich die medizinischen Sachverhalte, die die Anweisung verlangt.',
@@ -140,6 +153,36 @@
       'Vor der Ausgabe prüfst du still ab: Ist jede Seitenangabe, jedes Maß, jede Zahl, jede Vergleichsangabe und jeder Sicherheitsgrad entweder unverändert oder von der Anweisung ausdrücklich verlangt? Korrigiere jede Abweichung, bevor du antwortest.'
     ].join('\n');
   }
+  // Echte Korpusbefunde derselben Gruppe als Stilreferenz. Regeln allein reichen
+  // nicht: Der Stil ist an Beispielen deutlich zuverlaessiger zu treffen. Die
+  // Beispiele liefern ausschliesslich Formulierung, Satzbau und Reihenfolge -
+  // niemals einen Befundinhalt. Das ist im Prompt ausdruecklich gesagt und wird
+  // durch den Consistency Guard zusaetzlich abgesichert.
+  const STYLE_EXAMPLE_LIMIT = 3;
+  const STYLE_EXAMPLE_MAX_WORDS = 130;
+  function formatStyleExamples(examples){
+    const usable=(examples||[])
+      .filter(x=>x&&x.findings&&x.impression)
+      .filter(x=>wordCount(x.findings)<=STYLE_EXAMPLE_MAX_WORDS)
+      .slice(0,STYLE_EXAMPLE_LIMIT);
+    if(!usable.length)return '';
+    const blocks=usable.map((x,index)=>[
+      `BEISPIEL ${index+1}`,
+      `Befund: ${String(x.findings).trim()}`,
+      `Beurteilung: ${String(x.impression).trim()}`
+    ].join('\n'));
+    return [
+      'STILREFERENZEN AUS DEM KORPUS',
+      'Die folgenden Befunde stammen aus derselben Untersuchungsgruppe. Sie zeigen ausschließlich,',
+      'WIE formuliert wird: Satzlänge, Reihenfolge, Negationsformen, Grad der Verdichtung.',
+      'Übernimm daraus keinen einzigen medizinischen Sachverhalt, keine Seitenangabe, kein Maß,',
+      'keine Voruntersuchung und keine Empfehlung. Inhalt kommt ausschließlich aus dem Ausgangsbefund',
+      'und der Änderungsanweisung.',
+      '',
+      blocks.join('\n\n')
+    ].join('\n');
+  }
+
   function userPrompt(context,instruction){
     const lines = [
       'KONTEXT DER VORLAGE',
@@ -151,6 +194,8 @@
     if(context.clinical)lines.push(`Klinische Angaben im Original: ${context.clinical}`);
     if(context.questionRaw)lines.push(`Fragestellung im Original: ${context.questionRaw}`);
     if(context.title)lines.push(`Untersuchung: ${context.title}`);
+    const examples=formatStyleExamples(context.styleExamples);
+    if(examples)lines.push('',examples);
     lines.push('','AUSGANGSBEFUND',String(context.findings||'').trim()||'–');
     lines.push('','AUSGANGSBEURTEILUNG',String(context.impression||'').trim()||'–');
     lines.push('','ÄNDERUNGSANWEISUNG DES BEFUNDERS',String(instruction||'').trim());
@@ -305,11 +350,37 @@
   // Quoten - ein klinisch notwendiger Satz darf laenger sein. Die Engine prueft
   // deshalb auf Ausreisser und meldet, sie erzwingt keine Zahlen.
   // ==========================================================================
+  // Perzentile aus der Vermessung aller 104.043 Befund- und 18.621
+  // Beurteilungssaetze des Korpus. Die Schwellen sind gemessen, nicht gegriffen:
+  // Befund   Median 6 | P75 11 | P90 17 | P95 22 | P99 32
+  // Beurteil. Median 4 | P75  8 | P90 13 | P95 16 | P99 24
+  // Verhaeltnis Beurteilung/Befund  Median 0,14 | P90 0,32 | P95 0,38
   const STYLE_LIMITS = {
-    findingsP90: 17, findingsHard: 26,
-    impressionP90: 13, impressionHard: 20,
-    impressionRatio: 0.55           // Beurteilung/Befund; Korpusmedian 0.14
+    findingsP90: 17, findingsSoft: 22, findingsHard: 32,
+    impressionP90: 13, impressionSoft: 16, impressionHard: 24,
+    impressionRatio: 0.38
   };
+
+  // Wendungen, die im Gesamtkorpus praktisch nicht vorkommen. Sie sind damit
+  // kein Geschmacksurteil, sondern eine messbare Stilverletzung. Gemessen ueber
+  // Befund und Beurteilung aller 11.796 Datensaetze:
+  //   "Es zeigt sich/zeigen sich"  2 | "Kein Anhalt fuer"  0 | "Zusammenfassend" 0
+  //   Mass mit Dezimalpunkt        0 | hochgestelltes 10^-3 0 | "DD:"            1
+  // Nicht verboten und deshalb hier nicht gelistet: "Es finden sich" (62),
+  // "Es besteht/bestehen" (284) und "DD" ohne Doppelpunkt (157).
+  const FORBIDDEN_PATTERNS = [
+    [/\bEs (?:zeigt|zeigen) sich\b/gi, 'Es zeigt sich', 'Direkt benennen: „Riss im Hinterhorn …" statt „Es zeigt sich ein Riss …".'],
+    [/\bKein(?:e[nrs]?)? Anhalt für\b/gi, 'Kein Anhalt für', 'Korpustypisch sind „Kein Nachweis …" und „Keine Hinweise auf …".'],
+    [/\bZusammenfassend\b/gi, 'Zusammenfassend', 'Die Beurteilung beginnt mit der Diagnose, nicht mit einer Überleitung.'],
+    [/\bDD\s*:/g, 'DD:', 'Ausschreiben: „Differenzialdiagnostisch …".']
+  ];
+
+  // Im Korpus selten, aber vorhanden - deshalb Hinweis statt Verbot.
+  // "Im Bereich des/der" 61 Befunde | "Läsion" 974 | "leider" 67
+  const DISCOURAGED_PATTERNS = [
+    [/\bIm Bereich (?:des|der|von)\b/gi, 'Im Bereich des/der', 'Direkte Lokalisation ist korpustypischer (61 von 11.796 Befunden).'],
+    [/\bLäsion(?:en)?\b/g, 'Läsion', 'Im Fließtext überwiegt „Herd" (2.278 gegenüber 1.251 Nennungen).']
+  ];
 
   // Wendungen, die im Korpus nicht vorkommen und Lehrbuchprosa markieren.
   const FILLER_PATTERNS = [
@@ -362,6 +433,7 @@
   }
 
   function styleFinding(type,label,detail,severity='warning'){return {type,label,detail,severity};}
+  function combinedText(findings,impression){return `${findings||''} ${impression||''}`;}
 
   // Prueft eine Fassung gegen die Korpus-Stilanker. Liefert konkrete, dem Modell
   // wieder vorlegbare Beanstandungen - keine Punktzahl.
@@ -372,25 +444,39 @@
     for(const sentence of splitSentences(findings)){
       const words=wordCount(sentence);
       if(words>STYLE_LIMITS.findingsHard){
-        out.push(styleFinding('sentence_too_long','Befundsatz deutlich zu lang',
-          `${words} Wörter (Korpus-P90 ${STYLE_LIMITS.findingsP90}): „${sentence.slice(0,110)}“`,'high'));
-      }else if(words>STYLE_LIMITS.findingsP90&&/\sund\s/i.test(sentence)){
-        out.push(styleFinding('und_chain','Unabhängige Aussagen mit „und“ verkettet',
-          `${words} Wörter: „${sentence.slice(0,110)}“`));
+        out.push(styleFinding('sentence_too_long','Befundsatz länger als jeder Korpussatz üblicher Länge',
+          `${words} Wörter, Korpus-P99 ${STYLE_LIMITS.findingsHard}: „${sentence.slice(0,110)}“`,'high'));
+      }else if(words>STYLE_LIMITS.findingsSoft&&(/\sund\s/i.test(sentence)||(sentence.match(/,/g)||[]).length>=2)){
+        // 47 % der langen Korpussaetze enthalten "und" - allein ist das kein Fehler.
+        // Erst oberhalb des 95. Perzentils ist eine Trennung meist moeglich.
+        out.push(styleFinding('und_chain','Befundsatz im obersten Korpus-Perzentil',
+          `${words} Wörter (Korpus-P95 ${STYLE_LIMITS.findingsSoft}), auf trennbare Einzelaussagen prüfen: „${sentence.slice(0,110)}“`));
       }
     }
     for(const sentence of splitSentences(impression)){
       const words=wordCount(sentence);
       if(words>STYLE_LIMITS.impressionHard){
-        out.push(styleFinding('impression_sentence_too_long','Beurteilungssatz zu lang',
-          `${words} Wörter (Korpus-P90 ${STYLE_LIMITS.impressionP90}): „${sentence.slice(0,110)}“`,'high'));
+        out.push(styleFinding('impression_sentence_too_long','Beurteilungssatz deutlich zu lang',
+          `${words} Wörter, Korpus-P99 ${STYLE_LIMITS.impressionHard}: „${sentence.slice(0,110)}“`,'high'));
+      }else if(words>STYLE_LIMITS.impressionSoft){
+        out.push(styleFinding('impression_sentence_long','Beurteilungssatz über dem 95. Perzentil',
+          `${words} Wörter (Korpus-P95 ${STYLE_LIMITS.impressionSoft}): „${sentence.slice(0,110)}“`));
       }
+    }
+    for(const [pattern,label,hint] of FORBIDDEN_PATTERNS){
+      const hits=combinedText(findings,impression).match(pattern);
+      if(hits)out.push(styleFinding('forbidden_phrase',`Im Korpus praktisch nicht vorkommende Wendung: „${label}“`,
+        `${hint} (nahezu kein Vorkommen in 11.796 Korpusbefunden)`,'high'));
+    }
+    for(const [pattern,label,hint] of DISCOURAGED_PATTERNS){
+      const hits=combinedText(findings,impression).match(pattern);
+      if(hits)out.push(styleFinding('discouraged_phrase',`Untypische Wendung: „${label}“`,hint));
     }
     if(metrics.findingsWords>=40&&metrics.ratio>STYLE_LIMITS.impressionRatio){
       out.push(styleFinding('impression_not_condensed','Beurteilung zu wenig verdichtet',
         `Beurteilung erreicht ${Math.round(metrics.ratio*100)} % der Befundlänge (Korpusmedian 14 %).`,'high'));
     }
-    const combined=`${findings} ${impression}`;
+    const combined=combinedText(findings,impression);
     for(const [pattern,label] of FILLER_PATTERNS){
       const hits=combined.match(pattern);
       if(hits)out.push(styleFinding('filler',`Nicht korpustypische Wendung (${label})`,
@@ -419,6 +505,12 @@
     out=out.replace(/(?:,\s*){2,}/g,', ');
     out=out.replace(/\s*-\s*-\s*/g,' – ');
     out=out.replace(/\(\s+/g,'(').replace(/\s+\)/g,')');
+    // Dezimalpunkt vor Einheit -> Komma. Im Korpus steht das Komma in 100 % der
+    // Faelle; die Ersetzung aendert den Wert nicht, nur seine Schreibweise.
+    out=out.replace(/\b(\d+)\.(\d+)(?=\s*(?:cm|mm|m|ml|l|Tesla|T|%|mg|g|kg)\b)/g,'$1,$2');
+    // Hochgestellte Exponenten in die Korpusschreibweise ueberfuehren.
+    out=out.replace(/10[⁻−]\s*³/g,'10-3').replace(/10\^-3/g,'10-3');
+    out=out.replace(/mm²\s*\/\s*s/g,'mm²/s');
     out=out.trim();
     if(out&&!/[.!?:]$/.test(out))out+='.';
     return out;
@@ -476,5 +568,5 @@
   function clone(v){return JSON.parse(JSON.stringify(v));}
   function createVersionStore(original){const base={...clone(original),version:0,label:'Original'};let versions=[base],index=0;return {current:()=>clone(versions[index]),add(v){versions=versions.slice(0,index+1);versions.push({...clone(v),version:versions.length,label:`V${versions.length}`});index=versions.length-1;return this.current();},undo(){if(index>0)index--;return this.current();},redo(){if(index<versions.length-1)index++;return this.current();},reset(){index=0;return this.current();},goTo(i){const n=Number(i);if(Number.isInteger(n)&&n>=0&&n<versions.length)index=n;return this.current();},snapshot(){return {versions:clone(versions),index};},canUndo:()=>index>0,canRedo:()=>index<versions.length-1};}
 
-  return Object.freeze({DEFAULT_MODEL,FALLBACK_MODEL_IDS,HARNESS_GATED_IDS,isHarnessGateError,isHarnessGatedModel,isGatedId,pickFallbackModel,OUTPUT_SCHEMA,HARNESS_TOOLS,RESPONSES_HARNESS_TOOLS,isFreeModel,normalizeModel,sortModels,filterModels,formatPricePerMillion,normalizeSettings,shouldFallbackHarnessTransport,shouldPreferChatHarness,buildEditRequest,buildHarnessRequest,buildHarnessFollowup,buildResponsesHarnessRequest,buildResponsesHarnessFollowup,responseFunctionCalls,parseAIResponse,extractAIResult,completeAIResult,analyzeConsistency,buildSemanticDiff,createVersionStore,STYLE_LIMITS,splitSentences,styleMetrics,analyzeStyle,normalizeTypography,buildStyleRepairRequest,styleRepairIsSafe});
+  return Object.freeze({DEFAULT_MODEL,FALLBACK_MODEL_IDS,HARNESS_GATED_IDS,isHarnessGateError,isNotRoutableError,isHarnessGatedModel,isGatedId,pickFallbackModel,OUTPUT_SCHEMA,HARNESS_TOOLS,RESPONSES_HARNESS_TOOLS,isFreeModel,normalizeModel,sortModels,filterModels,formatPricePerMillion,normalizeSettings,shouldFallbackHarnessTransport,shouldPreferChatHarness,buildEditRequest,buildHarnessRequest,buildHarnessFollowup,buildResponsesHarnessRequest,buildResponsesHarnessFollowup,responseFunctionCalls,parseAIResponse,extractAIResult,completeAIResult,analyzeConsistency,buildSemanticDiff,createVersionStore,STYLE_LIMITS,FORBIDDEN_PATTERNS,DISCOURAGED_PATTERNS,splitSentences,styleMetrics,analyzeStyle,normalizeTypography,buildStyleRepairRequest,styleRepairIsSafe,formatStyleExamples});
 }));
