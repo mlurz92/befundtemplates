@@ -1,4 +1,4 @@
-# KSG Befundbrowser · Intelligence 5.0
+# KSG Befundbrowser · Intelligence 5.0.1
 
 **Klinik für Radiologie und Nuklearmedizin · Klinikum St. Georg Leipzig**
 
@@ -147,7 +147,7 @@ Aktueller Build: `2026-09-09-intelligence-5-0`
 |---|---:|
 | Originaldatensätze | 11.796 |
 | Auswahlkombinationen | 1.233 |
-| davon mit nur einem Treffer | 38 (3.1 %) |
+| davon mit nur einem Treffer | 38 (3,1 %) |
 | Median Vorlagen je Kombination | 5 |
 | Standard-Normalbefunde | 337 |
 | exakte Dubletten (nur nachgeordnet) | 33 |
@@ -241,28 +241,72 @@ Fall erforderlich.
 
 ### 7.1 Quantitative Anker
 
-Aus der Auswertung des Korpus:
+Vermessen wurden alle 104.043 Befund- und 18.621 Beurteilungssätze des Korpus:
 
-| Merkmal | Median | 90. Perzentil |
-|---|---:|---:|
-| Satzlänge Befund | 6 Wörter | 17 Wörter |
-| Satzlänge Beurteilung | 4 Wörter | 13 Wörter |
-| Beurteilung im Verhältnis zum Befund | 14 % | — |
+| Merkmal | Median | P75 | P90 | P95 | P99 |
+|---|---:|---:|---:|---:|---:|
+| Satzlänge Befund | 6 | 11 | 17 | 22 | 32 |
+| Satzlänge Beurteilung | 4 | 8 | 13 | 16 | 24 |
+| Beurteilung / Befund | 0,14 | 0,22 | 0,32 | 0,38 | — |
 
-Das sind **Richtwerte, keine Quoten**. Ein klinisch notwendiger Satz darf länger sein.
-Die Anwendung prüft daher auf Ausreißer und meldet sie; sie erzwingt keine Zahlen.
+Die Prüfschwellen der Anwendung sind an diese Perzentile gebunden, nicht gegriffen:
+P95 löst einen Hinweis aus, P99 eine Beanstandung. Ein klinisch notwendiger Satz darf
+lang sein — die Anwendung erzwingt keine Zahlen, sie meldet Ausreißer.
 
-Weitere Merkmale des Stils:
+Ergänzend gemessen: 9,4 % aller Befundsätze liegen über 17 Wörtern, und 47 % davon
+enthalten `und`. Ein `und` in einem langen Satz ist im Korpus also normal — deshalb löst
+es allein keine Beanstandung aus, sondern erst oberhalb des 95. Perzentils.
+
+**Weitere Merkmale des Stils**
 
 - kompakte, informationsdichte Prosa, häufig nominal, in der Regel eine eigenständige
   diagnostische Aussage pro Satz,
 - diagnostisches Ziel und ein gültiger Vergleich stehen früh,
 - Maße stehen unmittelbar bei dem Befund, den sie quantifizieren,
-- unabhängige Aussagen werden nicht mechanisch mit `und` verkettet,
 - `Kein Nachweis …` bezeichnet die Nichtdarstellung einer **Struktur**,
-  `Keine Hinweise auf …` das Fehlen von Zeichen eines **Prozesses** — die beiden
-  Wendungen sind keine Synonyme,
+  `Keine Hinweise auf …` das Fehlen von Zeichen eines **Prozesses**,
 - keine Lehrbuchprosa, keine Übergangsfloskeln, keine Wiederholung der Fragestellung.
+
+### 7.1a Belegte Verbote
+
+Diese Wendungen kommen im Korpus praktisch nicht vor. Sie sind damit kein
+Geschmacksurteil, sondern eine messbare Stilverletzung:
+
+| Wendung | Vorkommen in 11.796 Befunden | Korpustypisch statt dessen |
+|---|---:|---|
+| `Es zeigt sich` / `Es zeigen sich` | 2 | den Befund direkt benennen |
+| `Kein Anhalt für` | 0 | `Kein Nachweis …` / `Keine Hinweise auf …` |
+| `Zusammenfassend` | 0 | die Beurteilung beginnt mit der Diagnose |
+| `DD:` mit Doppelpunkt | 1 | `Differenzialdiagnostisch …` |
+| Maß mit Dezimalpunkt (`1.3 cm`) | 0 | `1,3 cm` |
+| hochgestelltes 10⁻³ | 0 | `x 10-3 mm²/s` |
+
+**Ausdrücklich nicht verboten**, weil im Korpus real belegt — und deshalb von der
+Anwendung auch nicht „korrigiert":
+
+| Wendung | Vorkommen |
+|---|---:|
+| `Es finden sich` | 62 |
+| `Es besteht` / `Es bestehen` | 284 |
+| `DD` ohne Doppelpunkt | 157 |
+| `metastasenverdächtig` | 772 |
+
+Zwei weitere Formen sind selten, aber vorhanden, und lösen daher nur einen Hinweis aus:
+`Im Bereich des/der` (61 Befunde) und `Läsion` (974 Befunde; im Fließtext überwiegt
+`Herd` mit 2.278 gegenüber 1.251 Nennungen).
+
+### 7.1b Stilreferenzen aus dem Korpus
+
+Regeln allein treffen einen Stil nicht zuverlässig. Die KI-Werkstatt legt dem Modell
+deshalb zusätzlich **bis zu drei echte Befunde derselben Untersuchungsgruppe** als
+Stilreferenz vor — die repräsentativsten Originale des gewählten Pfades, ohne die
+gerade angezeigte Vorlage selbst.
+
+Der Prompt sagt ausdrücklich, dass daraus ausschließlich Formulierung, Satzbau und
+Reihenfolge zu übernehmen sind und kein einziger medizinischer Sachverhalt, keine
+Seitenangabe, kein Maß, keine Voruntersuchung und keine Empfehlung. Abgesichert wird das
+durch den Consistency Guard, der jede Zahl, Seitenangabe und Vergleichsangabe gegen den
+Ausgangsbefund prüft.
 
 ### 7.2 Die Stil-Engine
 
@@ -273,16 +317,21 @@ Geprüft wird:
 
 | Prüfung | Auslöser |
 |---|---|
-| Befundsatz deutlich zu lang | über 26 Wörter |
-| Unabhängige Aussagen mit `und` verkettet | über 17 Wörter und `und` im Satz |
-| Beurteilungssatz zu lang | über 20 Wörter |
-| Beurteilung zu wenig verdichtet | über 55 % der Befundlänge bei mindestens 40 Befundwörtern |
-| Nicht korpustypische Wendung | acht Floskelmuster, u. a. `Es zeigt sich hier`, `Zusammenfassend lässt sich` |
+| Befundsatz jenseits des Korpusbereichs | über 32 Wörter (P99) |
+| Befundsatz im obersten Perzentil | über 22 Wörter (P95) mit `und` oder mindestens zwei Kommata |
+| Beurteilungssatz deutlich zu lang | über 24 Wörter (P99) |
+| Beurteilungssatz über dem 95. Perzentil | über 16 Wörter |
+| Beurteilung zu wenig verdichtet | über 38 % der Befundlänge (P95) bei mindestens 40 Befundwörtern |
+| Im Korpus praktisch nicht vorkommende Wendung | die sechs Verbote aus 7.1a |
+| Untypische Wendung | `Im Bereich des/der`, `Läsion` |
+| Nicht korpustypische Floskel | acht Muster, u. a. `Es zeigt sich hier`, `Übergangsfloskeln` |
 | Negationslogik | `Keine Hinweise auf` + Struktur, `Kein Nachweis` + Prozess |
 
-Zusätzlich wird die Typografie deterministisch normalisiert (Leerzeichen, Satzzeichen,
-Satzabschluss). Diese Normalisierung ändert ausschließlich Zeichensetzung, niemals
-Wortlaut, Zahlen oder Reihenfolge.
+Zusätzlich wird die Typografie deterministisch normalisiert: Leerzeichen, Satzzeichen,
+Satzabschluss sowie zwei belegte Schreibweisen — Dezimalpunkt vor einer Einheit wird zum
+Komma (`1.3 cm` → `1,3 cm`, im Korpus zu 100 % Komma) und hochgestelltes 10⁻³ zur
+Korpusschreibweise `10-3`. Diese Normalisierung ändert ausschließlich die Schreibweise,
+niemals Wortlaut, Zahlenwert oder Reihenfolge.
 
 ### 7.3 Der Stilkorrekturpass
 
@@ -425,7 +474,35 @@ und viele bieten große Kontextfenster. Sie sind aber **deutlich unzuverlässige
 Modellkatalog vermuten lässt**. Dieser Abschnitt dokumentiert, was gemessen wurde und
 wie die Anwendung damit umgeht.
 
-### 10.1 Messaufbau
+### 10.1 Was der Anbieter selbst zusagt — und was nicht
+
+Bevor eigene Messungen: OpenRouter dokumentiert die Grenzen des kostenlosen Zugangs
+ausdrücklich.
+
+**Anfragekontingent für `:free`-Modelle**
+
+| Jemals gekaufte Credits | Anfragen/Minute | Anfragen/Tag |
+|---|---:|---:|
+| unter 10 USD | 20 | 50 |
+| ab 10 USD (einmalig, lebenslang freigeschaltet) | 20 | 1.000 |
+
+Das Tageslimit hängt an der *jemals* gekauften Summe, nicht am aktuellen Guthaben.
+
+**Structured Outputs sind nicht garantiert.** Die Dokumentation stellt ausdrücklich klar,
+dass „exact compliance is not guaranteed on every endpoint" — manche Anbieter erzwingen
+das Schema, andere übersetzen es in ihr eigenes Format oder behandeln es lediglich als
+„a strong hint". Zusätzlich gilt: Dasselbe Modell wird von mehreren Anbietern bedient,
+und nur ein Teil davon unterstützt Structured Outputs. Die Katalogangabe
+`response_format` ist damit eine Absichtserklärung, keine Zusage — was die
+Messergebnisse in 10.3 exakt widerspiegeln.
+
+**`require_parameters`.** Die Anwendung setzt diesen Schalter, sobald sie ein JSON-Schema
+erzwingt. OpenRouter routet dann nur zu Anbietern, die den Parameter bestätigen. Das
+verhindert stillschweigend formatlose Antworten, kann aber dazu führen, dass gar kein
+Endpunkt übrig bleibt — dann kommt HTTP 404 statt einer unbrauchbaren Antwort. Die
+Anwendung behandelt beides (Abschnitt 10.6).
+
+### 10.2 Messaufbau
 
 Getestet wurde nicht ein generischer Prompt, sondern **exakt die Anfrage, die die
 Anwendung stellt**: dieselbe Vorlage, derselbe Systemprompt, dieselbe Pfadentscheidung
@@ -444,7 +521,7 @@ Bewertet wurde:
 | **Fakten bewahrt** | Außenmeniskus und Knorpelaussagen unverändert vorhanden |
 | **Stil** | Verstöße gegen die Korpusanker aus Abschnitt 7 |
 
-### 10.2 Ergebnisse
+### 10.3 Ergebnisse
 
 | Modell | Ergebnis | Aufrufe | Reparaturpass | Stilabweichungen | Laufzeit |
 |---|---|---:|---|---:|---:|
@@ -476,7 +553,7 @@ Bemerkenswert: Das schnellste brauchbare Modell war mit 5,7 Sekunden ein kleines
 medizinisch getuntes (`ling-3.0-flash-sante`), während das größte Modell des Feldes
 (`nemotron-3-ultra-550b`) 98,9 Sekunden benötigte und einen Reparaturpass brauchte.
 
-### 10.3 Die Fehlerbilder
+### 10.4 Die Fehlerbilder
 
 **1 · Zugangssperre.** Die Thinking-Machines-Modelle (`inkling`, `inkling-small`) geben
 kostenlosen Zugang ausschließlich für auf openrouter.ai/apps registrierte
@@ -519,24 +596,51 @@ geändert wurde.
 lange verkettete Sätze, Übergangsfloskeln, eine Beurteilung, die den Befund nacherzählt
 statt ihn zu verdichten.
 
-**8 · Instabilität zwischen Läufen.** Derselbe Endpunkt liefert bei Wiederholung ein
+**8 · Die eigenen Datenschutzschalter schließen kostenlose Endpunkte aus.** Die beiden
+Schalter `Provider mit Datensammlung ausschließen` und `Nur Zero-Data-Retention-Endpunkte`
+setzen OpenRouters Datenrichtlinien-Routing. Wer Training ablehnt, wird nicht zu
+trainierenden Anbietern geroutet — und kostenlose Endpunkte gehören überwiegend dazu.
+Ergebnis: **alle** kostenlosen Modelle antworten mit HTTP 404
+(`No endpoints available matching your guardrail restrictions and data policy`).
+
+Das ist kein Fehler, sondern die gewollte Wirkung der Einstellung. Weil der Zusammenhang
+aber nicht offensichtlich ist, weist die KI-Werkstatt jetzt ausdrücklich darauf hin,
+sobald ein kostenloses Modell bei aktivem Schalter gewählt ist. Wer Patientenbezug
+ausschließen will, braucht ein kostenpflichtiges Modell — beides zugleich geht nicht.
+
+**9 · Instabilität zwischen Läufen.** Derselbe Endpunkt liefert bei Wiederholung ein
 anderes Ergebnis — im Vergleich zweier Messreihen wechselten mehrere Modelle zwischen
 brauchbar, unparsbar und Zeitüberschreitung. Eine einmalige gute Antwort ist daher keine
 Zusage für den nächsten Lauf.
 
-### 10.4 Was die Anwendung dagegen tut
+### 10.5 Was die Anwendung dagegen tut
 
 | Fehlerbild | Gegenmaßnahme |
 |---|---|
 | Zugangssperre | Gesperrte Modelle werden erkannt, gemerkt (mit Verfall nach 7 Tagen) und automatisch durch ein gleichwertiges freies Modell ersetzt. Der Wechsel wird offen ausgewiesen, nie stillschweigend vollzogen. |
-| Nicht routbar, Rate Limit | Klartextmeldung mit Statuscode statt roher Providermeldung. |
+| Nicht routbar (HTTP 404) | Wird als eigene Fehlerklasse erkannt — auch die Datenrichtlinien-Variante — und löst denselben Modellwechsel aus wie eine Sperre. Anders als bei der Sperre wird das Modell **nicht** gemerkt, weil die Ursache an der Einstellung oder an der Anbieterlast liegen kann. |
+| Rate Limit (HTTP 429) | Klartextmeldung mit Statuscode statt roher Providermeldung. Das dokumentierte Kontingent steht in 10.1. |
+| Datenschutzschalter schließt Free-Endpunkte aus | Ausdrücklicher Hinweis in der KI-Werkstatt, sobald ein kostenloses Modell bei aktivem Schalter gewählt ist. |
 | Zeitüberschreitung | Die Laufzeit läuft sichtbar mit, sodass ein hängender Aufruf sofort erkennbar ist. |
 | Unbrauchbares Format | Mehrstufige Parserkaskade (JSON, Tool-Argumente, Markdown-Codeblock, Abschnittsmarker, Überschriftsvarianten, Absatzheuristik), dann ein Format-Reparaturpass, dann **einmalig das nächste Modell der Ausweichkette**. Scheitert auch das, bleibt die Ausgangsvorlage unverändert — es wird nie eine halbe Fassung übernommen. |
 | Anweisung ignoriert | Semantic Diff und Consistency Guard machen sichtbar, was sich tatsächlich geändert hat. |
 | Stilabweichung | Stilprüfung gegen die Korpusanker und ein abgesicherter Stilkorrekturpass (Abschnitt 7.3). |
 | Instabilität | Alle Prüfungen laufen bei **jedem** Lauf, nicht nur beim ersten. |
 
-### 10.5 Empfehlung für den Alltag
+### 10.6 Quellen
+
+- OpenRouter, *API Rate Limits* — Kontingente für `:free`-Modelle:
+  <https://openrouter.ai/docs/api-reference/limits>
+- OpenRouter, *Structured Outputs* — „exact compliance is not guaranteed on every
+  endpoint": <https://openrouter.ai/docs/features/structured-outputs>
+- OpenRouter, *Privacy and Logging* — Routing bei abgelehntem Training:
+  <https://openrouter.ai/docs/features/privacy-and-logging>
+- OpenRouter Support, *Why do all free models return a 404* — Datenrichtlinien-404:
+  <https://openrouter.zendesk.com/hc/en-us/articles/51690904755227>
+- Alle Messwerte in 10.3 stammen aus eigenen Läufen gegen die Live-API am 09.09.2026;
+  das Messskript ist der in 10.2 beschriebene Aufbau.
+
+### 10.7 Empfehlung für den Alltag
 
 1. Für die tägliche Arbeit ist ein **kostenpflichtiges Modell mit verlässlichem
    Structured Output** die ruhigere Wahl. Die Anwendung ist nicht auf kostenlose
@@ -635,9 +739,12 @@ node --check core.js && node --check app.js && node --check ai-core.js && node -
 |---|---|
 | `OpenRouter API-Key fehlt` | Kein Key hinterlegt. **KI & Modelle** öffnen und eintragen. |
 | Modell erscheint nicht im Katalog | Katalog ist live. **Verbindung testen** lädt neu; Filter prüfen. |
-| `… is only available on agentic harnesses` | Modell ist für registrierte Harness-Apps reserviert. Die Anwendung weicht automatisch aus (Abschnitt 10.4). |
+| `… is only available on agentic harnesses` | Modell ist für registrierte Harness-Apps reserviert. Die Anwendung weicht automatisch aus (Abschnitt 10.5). |
+| **Alle** kostenlosen Modelle antworten mit 404 | Einer der beiden Datenschutzschalter ist aktiv. Kostenlose Endpunkte trainieren überwiegend auf den Daten und fallen damit aus dem Routing. Entweder Schalter lösen oder kostenpflichtiges Modell wählen — beides zugleich geht nicht. |
+| `No endpoints found that can handle the requested parameters` | Der Endpunkt unterstützt einen gesetzten Parameter nicht (JSON-Schema oder Tool Calling). Die Anwendung wechselt automatisch auf das nächste Modell der Kette. |
 | `Failed to fetch` sofort nach dem Start | Netzwerk oder Firewall blockiert `openrouter.ai`. Die Anwendung sendet nur CORS-zulässige Header. |
 | „Modellantwort war nicht sicher strukturierbar" | Das Modell hält das Ausgabeformat nicht ein. Format-Reparaturpass ist gelaufen und ebenfalls gescheitert — anderes Modell wählen (Abschnitt 10.5). |
+| HTTP 429 nach wenigen Anfragen | Kostenlose Modelle sind auf 20 Anfragen/Minute und 50 Anfragen/Tag begrenzt; ab einmalig 10 USD gekaufter Credits auf 1.000/Tag (Abschnitt 10.1). Ein Modellwechsel hilft nicht — das Kontingent gilt kontoweit. |
 | Antwort dauert sehr lange | Kostenlose Endpunkte sind lastabhängig. Die Laufzeit läuft sichtbar mit; bei über 60 s ist meist der Endpunkt überlastet. |
 | Stilkorrekturpass „verworfen" | Der Korrekturpass hätte den medizinischen Inhalt verändert. Die inhaltlich gesicherte Fassung bleibt bestehen — das ist das gewünschte Verhalten. |
 | Auswahl nach Neuladen weg | Nur eine vollständige Auswahl steht im URL-Fragment. Link kopieren, nicht nur die Seite neu laden. |
@@ -645,6 +752,52 @@ node --check core.js && node --check app.js && node --check ai-core.js && node -
 ---
 
 ## 14. Versionsverlauf
+
+### 5.0.1 — Ergebnisse der Selbstprüfung
+
+Eine systematische Nachprüfung der Version 5.0 gegen die verbindlichen KSG-Stilvorgaben,
+die Anbieterdokumentation und den eigenen Code förderte sieben Punkte zutage:
+
+- **Belegte Stilverbote fehlten vollständig.** Die Stil-Engine kannte Satzlängen und
+  Floskeln, aber nicht die harten Verbote des Prof.-Schäfer-Stils. Sie sind jetzt
+  umgesetzt und am Gesamtkorpus belegt (Abschnitt 7.1a) — einschließlich der
+  Gegenprobe, welche Formen ausdrücklich **nicht** verboten sind.
+- **Fehler in der eigenen Messung.** Der erste Prüfausdruck für `Es zeigt sich` traf die
+  Form `zeigt` gar nicht und meldete fälschlich null Treffer. Korrigiert; die belastbare
+  Zahl ist 2 von 11.796.
+- **Stilschwellen waren gegriffen.** `26` und `20` Wörter standen ohne Herleitung im
+  Code. Ersetzt durch die gemessenen Perzentile des Korpus (P95/P99).
+- **`und` wurde zu scharf geahndet.** Die alte Regel hätte 4.640 echte Korpussätze
+  beanstandet; 47 % der langen Korpussätze enthalten `und`. Die Regel greift jetzt erst
+  oberhalb des 95. Perzentils.
+- **Dem Modell fehlten Beispiele.** Der Prompt enthielt nur Regeln. Er enthält jetzt
+  zusätzlich bis zu drei echte Befunde derselben Gruppe als Stilreferenz (Abschnitt 7.1b).
+- **`Bridge.formatCount` gab es nicht.** Die Tokenzahl der Statusanzeige lief in einen
+  Fallback. Ersetzt durch einen eigenen Formatierer.
+- **Irreführende Meldung.** Jeder Modellwechsel wurde als „gesperrt" gemeldet, auch der
+  nach einem Formatfehler. Die Meldung unterscheidet jetzt beide Ursachen.
+
+Aus der Anbieterrecherche kamen zwei weitere Änderungen:
+
+- **HTTP 404 löst jetzt ebenfalls einen Modellwechsel aus.** Nicht routbare Modelle
+  wurden vorher als harter Fehler an den Benutzer durchgereicht.
+- **Die eigenen Datenschutzschalter schließen kostenlose Endpunkte aus** — dokumentierte
+  Wirkung des Datenrichtlinien-Routings. Die KI-Werkstatt weist jetzt darauf hin
+  (Abschnitt 10.4, Fehlerbild 8).
+
+Zugänglichkeit, geprüft gegen die KSG-Vorgaben:
+
+- Der Fokusring lag bei 28 % Deckkraft und war auf hellem Glas kaum sichtbar — jetzt
+  deckend, 2 px mit 2 px Versatz.
+- Trefferleiste (27 px) und Blätterschalter (37 px) lagen unter der geforderten
+  Mindestgröße von 44 px. Die sichtbare Größe bleibt, die Trefffläche ist unsichtbar
+  auf 44 px vergrößert.
+
+**Offener Punkt zur Entscheidung:** Die Anwendung verwendet als Markenrot `#E30613`, die
+verbindliche KSG-Vorgabe nennt `#E3000B`. Der Unterschied ist visuell kaum wahrnehmbar,
+betrifft aber rund 50 Farbwerte im Stylesheet. Da der bisherige Wert aus der
+ausgelieferten Anwendung stammt und nicht aus einer Fehlannahme, wurde er **nicht**
+eigenmächtig geändert, sondern hier festgehalten.
 
 ### 5.0 — Stil-Engine, Live-Status, Aero Glass
 

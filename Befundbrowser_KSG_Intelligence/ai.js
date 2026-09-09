@@ -33,7 +33,7 @@
   // (Access-Control-Allow-Headers). Eigene X-OpenRouter-*-Header ausserhalb
   // dieser Liste lassen den Preflight scheitern; der Aufruf endet dann als
   // "Failed to fetch", ohne dass die API ueberhaupt erreicht wird.
-  const APP_TITLE='Befundbrowser KSG Intelligence 5.0';
+  const APP_TITLE='Befundbrowser KSG Intelligence 5.0.1';
   function appReferer(){try{const origin=window.location?.origin;if(origin&&/^https?:$/.test(window.location.protocol))return origin;}catch(_){}return 'https://localhost/';}
   function headers(key){return {'Authorization':`Bearer ${key}`,'Content-Type':'application/json','HTTP-Referer':appReferer(),'X-Title':APP_TITLE};}
   async function request(url,options={}){const key=(options.key||state.settings.apiKey||'').trim();if(!key)throw new Error('OpenRouter API-Key fehlt.');const res=await fetch(url,{...options,headers:{...headers(key),...(options.headers||{})}});let data=null;try{data=await res.json();}catch(_){data={};}if(!res.ok){const err=new Error(data?.error?.message||`OpenRouter HTTP ${res.status}`);err.status=res.status;err.openRouter=data?.error||null;throw err;}return data;}
@@ -228,14 +228,25 @@ Gib jetzt zwingend die vollständige Fassung über submit_radiology_edit aus.`,m
     for(let attempt=0;;attempt++){
       try{result=await runWithModel(ctx,instruction,activeModel,settings,source);break;}
       catch(e){
-        if(!AI.isHarnessGateError(e)||attempt>=2)throw e;
-        rememberGated(activeModel.id);
+        const gate=AI.isHarnessGateError(e);
+        const unroutable=AI.isNotRoutableError(e);
+        if((!gate&&!unroutable)||attempt>=2)throw e;
+        // Nur die echte Harness-Sperre wird dauerhaft gemerkt. Ein Routingfehler
+        // kann an der Datenschutzeinstellung oder an der Anbieterlast liegen und
+        // darf das Modell nicht fuer sieben Tage aussperren.
+        if(gate)rememberGated(activeModel.id);
         // Katalog neu bewerten, damit die Sperre sofort als Badge sichtbar wird.
         const learned=gatedIds();state.models=state.rawModels.map(m=>AI.normalizeModel(m,state.zdrSet,learned));
         try{renderCatalog();renderWorkshopModel();}catch(_){}
         const alt=fallbackFor(activeModel);
-        if(!alt)throw new Error(`${activeModel.id} ist von OpenRouter nur fuer registrierte Agentic-Harness-Apps freigegeben und es steht kein freies Ausweichmodell zur Verfuegung. Bitte im Modellkatalog ein anderes Modell waehlen.`);
-        substitutions.push(gateWarning(activeModel.id,alt.id));
+        if(!alt)throw new Error(gate
+          ? `${activeModel.id} ist von OpenRouter nur für registrierte Agentic-Harness-Apps freigegeben und es steht kein freies Ausweichmodell zur Verfügung. Bitte im Modellkatalog ein anderes Modell wählen.`
+          : `${activeModel.id} ist unter den aktuellen Einstellungen nicht erreichbar (${e.message}). Prüfen Sie die Datenschutzschalter in den KI-Einstellungen oder wählen Sie ein anderes Modell.`);
+        substitutions.push(gate?gateWarning(activeModel.id,alt.id):{
+          type:'model_not_routable',label:'Modell nicht erreichbar',
+          detail:`OpenRouter konnte ${activeModel.id} nicht bedienen (${e.message.slice(0,110)}). Ausgeführt mit ${alt.id}.`,
+          severity:'warning',instructionBacked:false
+        });
         activeModel=alt;
       }
     }
@@ -339,7 +350,19 @@ Gib jetzt zwingend die vollständige Fassung über submit_radiology_edit aus.`,m
   }
 
   function openWorkshop(){const ctx=Bridge.getCurrentReportContext();if(!ctx){Bridge.showToast('Zuerst einen Befund auswählen');return;}state.settings=readConfig();if(!state.settings.apiKey){openSettings();setStatus('API-Key erforderlich, bevor die KI-Werkstatt genutzt werden kann.','error');return;}state.context=ctx;state.store=AI.createVersionStore({findings:ctx.findings,impression:ctx.impression,sourceKey:ctx.sourceKey});state.parentVersion=null;el.sourceF.textContent=ctx.findings;el.sourceI.textContent=ctx.impression||'Keine separate Beurteilung.';el.context.innerHTML=[ctx.modality,ctx.region,ctx.theme,ctx.question].map(x=>`<span>${esc(x)}</span>`).join('');el.instruction.value='';el.resultZone.hidden=true;renderWorkshopModel();if(!el.workshop.open)el.workshop.showModal();}
-  function renderWorkshopModel(){const m=selectedModel();el.workshopModel.textContent=`OpenRouter · ${m.name} · ${m.id}${AI.isHarnessGatedModel(m,gatedIds())?' · GESPERRT (Harness-only) · Ausweichmodell aktiv':''}`;const gated=AI.isHarnessGatedModel(m,gatedIds());const alt=gated?fallbackFor(m):null;el.privacy.innerHTML=gated?`<strong>Modell bei OpenRouter gesperrt · automatisches Ausweichmodell</strong><span>OpenRouter gibt <code>${esc(m.id)}</code> ausschließlich für auf openrouter.ai/apps registrierte Agentic-Harness-Clients frei. Diese Web-App kann den Endpunkt nicht aufrufen; Anfragen werden automatisch mit dem gleichwertigen freien Modell <code>${esc(alt?.id||'–')}</code> im mehrstufigen Tool-Harness (Review → lokaler Guard → Submit) ausgeführt. Freie Endpunkte protokollieren Prompts und Outputs laut Anbieterhinweis; keine vertraulichen oder personenbezogenen Patientendaten senden.</span>`:'<strong>Datenschutz prüfen</strong><span>Provider-/Modellrichtlinien können variieren. Nur für die gewählte Datenklasse freigegebene Endpunkte verwenden.</span>';}
+  // Die beiden Datenschutzschalter schließen Anbieter aus, die auf übermittelten
+  // Daten trainieren. Kostenlose Endpunkte gehören überwiegend dazu; mit
+  // aktiviertem Schalter antwortet OpenRouter dort mit HTTP 404. Das ist eine
+  // gewollte Einstellung, aber der Zusammenhang muss sichtbar sein.
+  function freeModelPolicyConflict(model){
+    const s=state.settings||{};
+    if(!model?.free)return '';
+    if(s.requireZdr)return 'Zero-Data-Retention ist aktiv. Kostenlose Endpunkte erfüllen das in der Regel nicht und antworten dann mit „No endpoints found“.';
+    if(s.denyDataCollection)return 'Der Ausschluss datensammelnder Anbieter ist aktiv. Kostenlose Endpunkte trainieren überwiegend auf den übermittelten Daten und fallen damit aus dem Routing.';
+    return '';
+  }
+
+  function renderWorkshopModel(){const m=selectedModel();el.workshopModel.textContent=`OpenRouter · ${m.name} · ${m.id}${AI.isHarnessGatedModel(m,gatedIds())?' · GESPERRT (Harness-only) · Ausweichmodell aktiv':''}`;const gated=AI.isHarnessGatedModel(m,gatedIds());const alt=gated?fallbackFor(m):null;const policyConflict=freeModelPolicyConflict(m);el.privacy.innerHTML=policyConflict?`<strong>Einstellung schließt kostenlose Endpunkte aus</strong><span>${esc(policyConflict)} Entweder den Schalter in den KI-Einstellungen lösen oder ein kostenpflichtiges Modell wählen.</span>`:gated?`<strong>Modell bei OpenRouter gesperrt · automatisches Ausweichmodell</strong><span>OpenRouter gibt <code>${esc(m.id)}</code> ausschließlich für auf openrouter.ai/apps registrierte Agentic-Harness-Clients frei. Diese Web-App kann den Endpunkt nicht aufrufen; Anfragen werden automatisch mit dem gleichwertigen freien Modell <code>${esc(alt?.id||'–')}</code> im mehrstufigen Tool-Harness (Review → lokaler Guard → Submit) ausgeführt. Freie Endpunkte protokollieren Prompts und Outputs laut Anbieterhinweis; keine vertraulichen oder personenbezogenen Patientendaten senden.</span>`:'<strong>Datenschutz prüfen</strong><span>Provider-/Modellrichtlinien können variieren. Nur für die gewählte Datenklasse freigegebene Endpunkte verwenden.</span>';}
   function currentEdited(){const v=state.store.current();return {...v,findings:el.resultZone.hidden?v.findings:el.resultF.value,impression:el.resultZone.hidden?v.impression:el.resultI.value};}
   function diffInto(node,a,b){node.replaceChildren();for(const part of AI.buildSemanticDiff(a,b)){const span=document.createElement('span');span.textContent=part.text;if(part.type==='add')span.className='diff-add';if(part.type==='remove')span.className='diff-remove';node.appendChild(span);}}
   // Zeigt die gemessenen Stilkennzahlen der aktuellen Fassung gegen die
@@ -365,6 +388,8 @@ Gib jetzt zwingend die vollständige Fassung über submit_radiology_edit aus.`,m
   function renderWarnings(warnings){el.warnings.innerHTML=(warnings||[]).map(w=>`<div class="ai-warning ${esc(w.severity||'')}"><span class="warning-mark">${w.severity==='high'?'⚠':'◇'}</span><div><strong>${esc(w.label)}</strong><small>${esc(w.detail)}</small></div><span class="${w.instructionBacked?'instruction-backed':''}">${w.instructionBacked?'in Anweisung':'prüfen'}</span></div>`).join('')||'<div class="ai-warning"><span class="warning-mark">✓</span><div><strong>Keine heuristischen Konflikte erkannt</strong><small>Ärztliche Endkontrolle bleibt erforderlich.</small></div><span class="instruction-backed">lokal geprüft</span></div>';}
   function renderVersion(){const snap=state.store.snapshot(),v=snap.versions[snap.index],parent=snap.index>0?snap.versions[snap.index-1]:snap.versions[0];el.resultZone.hidden=false;el.resultF.value=v.findings||'';el.resultI.value=v.impression||'';el.summary.textContent=v.summary||v.label||'Aktuelle Fassung';renderStyleReport(v);renderWarnings(v.warnings||[]);diffInto(el.diffF,parent.findings||'',v.findings||'');diffInto(el.diffI,parent.impression||'',v.impression||'');el.timeline.innerHTML=snap.versions.map((x,i)=>`<button type="button" data-version="${i}" class="${i===snap.index?'is-current':''}">${esc(x.label||`V${i}`)}</button>`).join('');for(const b of el.timeline.querySelectorAll('button'))b.addEventListener('click',()=>{state.store.goTo(Number(b.dataset.version));renderVersion();});el.undo.disabled=!state.store.canUndo();el.redo.disabled=!state.store.canRedo();}
   function fmtSeconds(ms){return `${(ms/1000).toFixed(1).replace('.',',')} s`;}
+  const numberFormat=new Intl.NumberFormat('de-DE');
+  function fmtCount(value){return numberFormat.format(Number(value)||0);}
 
   function setProcessing(on){
     state.processingTimers.forEach(clearInterval);
@@ -387,7 +412,7 @@ Gib jetzt zwingend die vollständige Fassung über submit_radiology_edit aus.`,m
       const parts=[];
       if(meta.model)parts.push(`<span><b>Modell</b>${esc(meta.model)}</span>`);
       if(meta.steps)parts.push(`<span><b>Modellaufrufe</b>${meta.steps}</span>`);
-      if(meta.usage?.total_tokens)parts.push(`<span><b>Tokens</b>${Bridge.formatCount?Bridge.formatCount(meta.usage.total_tokens):meta.usage.total_tokens}</span>`);
+      if(meta.usage?.total_tokens)parts.push(`<span><b>Tokens</b>${fmtCount(meta.usage.total_tokens)}</span>`);
       if(meta.style)parts.push(`<span><b>Befundsätze</b>${meta.style.findingsSentences}</span>`,
         `<span><b>Verdichtung</b>${Math.round((meta.style.ratio||0)*100)} %</span>`);
       el.processingMeta.innerHTML=parts.join('');
@@ -417,7 +442,15 @@ Gib jetzt zwingend die vollständige Fassung über submit_radiology_edit aus.`,m
     }
   }
 
-  async function runAI(){const instruction=el.instruction.value.trim();if(!instruction){Bridge.showToast('Änderungsanweisung fehlt');return;}state.settings=readConfig();if(!state.settings.apiKey){openSettings();return;}const source=currentEdited();const model=selectedModel();const ctx={...state.context,findings:source.findings,impression:source.impression};el.run.disabled=true;setProcessing(true);progress.begin(renderProgress);try{const execution=await executeAIEdit(ctx,instruction,model,state.settings,source);const parsed=execution.parsed;const warnings=[...(execution.parserWarnings||[]),...AI.analyzeConsistency(source,parsed,instruction)];state.parentVersion=source;state.store.add({findings:parsed.findings,impression:parsed.impression,summary:parsed.summary||(execution.harness?'Agentische KI-Transformation':'KI-Transformation'),style:execution.style?.metrics||null,styleRepaired:Boolean(execution.styleRepaired),preserved:parsed.preserved,conflicts:parsed.conflicts,warnings,instruction,modelId:execution.model?.id||model.id,usage:execution.usage||null,sourceKey:state.context.sourceKey,harness:Boolean(execution.harness),steps:execution.steps||1,repaired:Boolean(execution.repaired)});renderVersion();el.instruction.value='';if(execution.substitutions?.length)Bridge.showToast(`Modell ${model.id} ist bei OpenRouter gesperrt \u2013 ausgefuehrt mit ${execution.model.id}`);}catch(e){Bridge.showToast(`KI-Fehler: ${e.message}`);renderWarnings([{type:'api_error',label:'OpenRouter-Anfrage fehlgeschlagen',detail:e.message,severity:'high',instructionBacked:false}]);el.resultZone.hidden=false;}finally{progress.end();setProcessing(false);el.run.disabled=false;}}
+  async function runAI(){const instruction=el.instruction.value.trim();if(!instruction){Bridge.showToast('Änderungsanweisung fehlt');return;}state.settings=readConfig();if(!state.settings.apiKey){openSettings();return;}const source=currentEdited();const model=selectedModel();const ctx={...state.context,findings:source.findings,impression:source.impression};el.run.disabled=true;setProcessing(true);progress.begin(renderProgress);try{const execution=await executeAIEdit(ctx,instruction,model,state.settings,source);const parsed=execution.parsed;const warnings=[...(execution.parserWarnings||[]),...AI.analyzeConsistency(source,parsed,instruction)];state.parentVersion=source;state.store.add({findings:parsed.findings,impression:parsed.impression,summary:parsed.summary||(execution.harness?'Agentische KI-Transformation':'KI-Transformation'),style:execution.style?.metrics||null,styleRepaired:Boolean(execution.styleRepaired),preserved:parsed.preserved,conflicts:parsed.conflicts,warnings,instruction,modelId:execution.model?.id||model.id,usage:execution.usage||null,sourceKey:state.context.sourceKey,harness:Boolean(execution.harness),steps:execution.steps||1,repaired:Boolean(execution.repaired)});renderVersion();el.instruction.value='';if(execution.substitutions?.length){
+      // Ein Modellwechsel kann zwei Ursachen haben; die Meldung darf sie nicht vermengen.
+      const gated=execution.substitutions.some(x=>x.type==='model_harness_gated');
+      const switched=execution.substitutions.some(x=>x.type==='model_format_switch');
+      const used=execution.model?.id||model.id;
+      if(gated&&switched)Bridge.showToast(`${model.id} ist gesperrt, das Ausweichmodell hielt das Format nicht ein \u2013 ausgeführt mit ${used}`);
+      else if(gated)Bridge.showToast(`${model.id} ist bei OpenRouter gesperrt \u2013 ausgeführt mit ${used}`);
+      else if(switched)Bridge.showToast(`${model.id} hielt das Ausgabeformat nicht ein \u2013 ausgeführt mit ${used}`);
+    }}catch(e){Bridge.showToast(`KI-Fehler: ${e.message}`);renderWarnings([{type:'api_error',label:'OpenRouter-Anfrage fehlgeschlagen',detail:e.message,severity:'high',instructionBacked:false}]);el.resultZone.hidden=false;}finally{progress.end();setProcessing(false);el.run.disabled=false;}}
   async function copyWorkshop(){const v=currentEdited();const text=`Befund:\n${v.findings}\n\nBeurteilung:\n${v.impression}`;try{await navigator.clipboard.writeText(text);}catch(_){const a=document.createElement('textarea');a.value=text;document.body.appendChild(a);a.select();document.execCommand('copy');a.remove();}Bridge.showToast('KI-Befund kopiert');}
   function applyWorkshop(){const v=currentEdited();const ok=Bridge.applyDraft({sourceKey:state.context.sourceKey,findings:v.findings,impression:v.impression,modelId:selectedModel().id,versionLabel:state.store.current().label||'AI'});if(ok){Bridge.showToast('KI-Entwurf in Befundviewer übernommen');el.workshop.close();}else Bridge.showToast('Ausgangsbefund ist nicht mehr aktiv');}
 
