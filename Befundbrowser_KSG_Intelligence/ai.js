@@ -33,7 +33,7 @@
   // (Access-Control-Allow-Headers). Eigene X-OpenRouter-*-Header ausserhalb
   // dieser Liste lassen den Preflight scheitern; der Aufruf endet dann als
   // "Failed to fetch", ohne dass die API ueberhaupt erreicht wird.
-  const APP_TITLE='Befundbrowser KSG Intelligence 4.1.3';
+  const APP_TITLE='Befundbrowser KSG Intelligence 4.2.0';
   function appReferer(){try{const origin=window.location?.origin;if(origin&&/^https?:$/.test(window.location.protocol))return origin;}catch(_){}return 'https://localhost/';}
   function headers(key){return {'Authorization':`Bearer ${key}`,'Content-Type':'application/json','HTTP-Referer':appReferer(),'X-Title':APP_TITLE};}
   async function request(url,options={}){const key=(options.key||state.settings.apiKey||'').trim();if(!key)throw new Error('OpenRouter API-Key fehlt.');const res=await fetch(url,{...options,headers:{...headers(key),...(options.headers||{})}});let data=null;try{data=await res.json();}catch(_){data={};}if(!res.ok){const err=new Error(data?.error?.message||`OpenRouter HTTP ${res.status}`);err.status=res.status;err.openRouter=data?.error||null;throw err;}return data;}

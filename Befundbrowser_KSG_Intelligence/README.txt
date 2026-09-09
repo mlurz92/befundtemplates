@@ -1,4 +1,4 @@
-KSG BEFUNDBROWSER · INTELLIGENCE 4.1.3
+KSG BEFUNDBROWSER · INTELLIGENCE 4.2.0
 =========================================
 
 Die vollständige Programmbeschreibung, OpenRouter-Konfiguration, Dokumentation

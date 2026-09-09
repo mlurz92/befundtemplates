@@ -88,8 +88,64 @@
     if(/agentic harness/i.test(message))return true;if(/failed to fetch|networkerror|network error|cors|load failed|fetch failed/i.test(message))return true;if(error instanceof TypeError&&status===0)return true;return status===404||status===405||status===415||status===422||status>=500;}
   function shouldPreferChatHarness(protocol,responsesTransportFailed=false){return String(protocol||'').toLowerCase()==='file:'||Boolean(responsesTransportFailed);}
 
-  function systemPrompt(structured){return `Du bearbeitest einen radiologischen Befund im kompakten Prof.-Schäfer-Stil.\nREGELN:\n1. Ändere ausschließlich die vom Benutzer verlangten medizinischen Sachverhalte.\n2. Erhalte alle übrigen Befundtatsachen semantisch: Lateralisierung, Lokalisation, Maße, Anzahl, Vergleichsdynamik, diagnostische Sicherheit und relevante Negativbefunde.\n3. Erfinde keine Pathologie, Voruntersuchung, Methodik oder Empfehlung.\n4. Befund und Beurteilung müssen konsistent sein.\n5. Unsicherheitsgrade wie V. a., suspekt, am ehesten dürfen nicht eigenmächtig verstärkt oder abgeschwächt werden.\n6. Formuliere kompakt, präzise, radiologisch; keine Erläuterungen außerhalb der vorgesehenen Felder.\n${structured?'Antworte strikt im vorgegebenen JSON-Schema.':'Antworte möglichst strukturiert. Wenn kein Tool oder JSON-Schema erzwungen ist, verwende bevorzugt:\n===BEFUND===\n...\n===BEURTEILUNG===\n...\n===ÄNDERUNGEN===\n...\n===BEWAHRT===\n...\n===KONFLIKTE===\n...'}`;}
-  function userPrompt(context,instruction){return `KONTEXT\nModalität: ${context.modality||'–'}\nRegion: ${context.region||'–'}\nThema: ${context.theme||'–'}\nFragestellung: ${context.question||'–'}\n\nAUSGANGSBEFUND\n${context.findings||''}\n\nAUSGANGSBEURTEILUNG\n${context.impression||''}\n\nÄNDERUNGSANWEISUNG\n${instruction}`;}
+  // Stilanker aus der quantitativen Auswertung des 11.796-Befunde-Korpus:
+  // Befundsatz median 6 Woerter (P90 17), Beurteilungssatz median 4 (P90 13),
+  // Beurteilung rund 14 % der Befundlaenge. Es sind Richtwerte, keine Quoten.
+  const STYLE_RULES = [
+    'Kompakte, informationsdichte Prosa; häufig nominaler Stil. In der Regel eine eigenständige diagnostische Aussage pro Satz.',
+    'Satzlänge: Befund typischerweise 6 bis 17 Wörter, Beurteilung 4 bis 13. Längere Sätze auf trennbare Einzelaussagen prüfen.',
+    'Die Beurteilung ist deutlich stärker verdichtet als der Befund (Richtwert etwa ein Siebtel der Länge) und wiederholt ihn nicht Satz für Satz.',
+    'Diagnostisches Ziel und ein gültiger Vergleich stehen früh; die Antwort auf die Fragestellung wird nicht hinter einem Normalbefund-Inventar vergraben.',
+    'Maße stehen unmittelbar bei dem Befund, den sie quantifizieren.',
+    'Negationslogik strikt trennen: "Kein Nachweis ..." bedeutet die direkte Nichtdarstellung der genannten Struktur, "Keine Hinweise auf ..." das Fehlen von Zeichen eines Prozesses. Die beiden Wendungen sind keine Synonyme.',
+    'Unabhängige Aussagen nicht mechanisch mit "und" verketten: getrennte kurze Sätze oder eine knappe Parallelkonstruktion. "und" bleibt dort, wo die Grammatik es verlangt.',
+    'Echte medizinische Schrägstrich-Notation bleibt erhalten (C5/6, LWK 5/SWK 1, ng/ml).',
+    'Keine Lehrbuchprosa, keine Füllwörter, keine Wiederholung der Fragestellung im Befundtext.'
+  ];
+  const EDIT_RULES = [
+    'Ändere ausschließlich die medizinischen Sachverhalte, die die Anweisung verlangt.',
+    'Erhalte jede übrige Befundtatsache semantisch exakt: Seitenangabe, Lokalisation, Segment, Maße, Anzahl, Vergleichsdynamik (neu, konstant, regredient, progredient), diagnostische Sicherheit und relevante Negativbefunde.',
+    'Erfinde nichts hinzu: keine Pathologie, keine Voruntersuchung, kein Vergleichsintervall, keine Methodik, keine Sequenzliste, keine Serien- oder Bildnummer, keine Empfehlung, kein Normalbefund-Inventar.',
+    'Unsicherheitsgrade (V. a., suspekt, am ehesten, DD) werden weder verstärkt noch abgeschwächt, sofern die Anweisung das nicht ausdrücklich verlangt.',
+    'Befund und Beurteilung müssen widerspruchsfrei sein: Was die Anweisung im Befund ändert, ist in der Beurteilung nachzuführen, sofern es dort überhaupt vorkommt.',
+    'Gib immer den vollständigen Befund und die vollständige Beurteilung aus, nicht nur die geänderte Passage.'
+  ];
+  const OUTPUT_FALLBACK = 'Antworte möglichst strukturiert. Wenn kein Tool und kein JSON-Schema erzwungen ist, verwende:\n===BEFUND===\n...\n===BEURTEILUNG===\n...\n===ÄNDERUNGEN===\n...\n===BEWAHRT===\n...\n===KONFLIKTE===\n...';
+
+  function numbered(items){return items.map((item,index)=>`${index+1}. ${item}`).join('\n');}
+  function systemPrompt(structured){
+    return [
+      'Du bearbeitest eine radiologische Befundvorlage im kompakten Prof.-Schäfer-Stil.',
+      'Der medizinische Inhalt hat Vorrang vor dem Stil: Ändere niemals eine medizinische Aussage, nur damit sie stilistisch besser passt.',
+      '',
+      'ÄNDERUNGSREGELN',
+      numbered(EDIT_RULES),
+      '',
+      'STILREGELN',
+      numbered(STYLE_RULES),
+      '',
+      'AUSGABE',
+      structured ? 'Antworte strikt im vorgegebenen JSON-Schema.' : OUTPUT_FALLBACK,
+      '',
+      'Vor der Ausgabe prüfst du still ab: Ist jede Seitenangabe, jedes Maß, jede Zahl, jede Vergleichsangabe und jeder Sicherheitsgrad entweder unverändert oder von der Anweisung ausdrücklich verlangt? Korrigiere jede Abweichung, bevor du antwortest.'
+    ].join('\n');
+  }
+  function userPrompt(context,instruction){
+    const lines = [
+      'KONTEXT DER VORLAGE',
+      `Modalität: ${context.modality||'–'}`,
+      `Untersuchungsregion: ${context.region||'–'}`,
+      `Klinische Angaben (Kategorie): ${context.theme||'–'}`,
+      `Fragestellung (Kategorie): ${context.question||'–'}`
+    ];
+    if(context.clinical)lines.push(`Klinische Angaben im Original: ${context.clinical}`);
+    if(context.questionRaw)lines.push(`Fragestellung im Original: ${context.questionRaw}`);
+    if(context.title)lines.push(`Untersuchung: ${context.title}`);
+    lines.push('','AUSGANGSBEFUND',String(context.findings||'').trim()||'–');
+    lines.push('','AUSGANGSBEURTEILUNG',String(context.impression||'').trim()||'–');
+    lines.push('','ÄNDERUNGSANWEISUNG DES BEFUNDERS',String(instruction||'').trim());
+    return lines.join('\n');
+  }
   function providerSettings(settings,requireParameters=false){const s=normalizeSettings(settings);const provider={};if(s.denyDataCollection)provider.data_collection='deny';if(s.requireZdr)provider.zdr=true;if(requireParameters)provider.require_parameters=true;return provider;}
   function buildEditRequest(context,instruction,model,settings={}){
     const s=normalizeSettings(settings); const structured=Boolean(model?.supportsStructured);
