@@ -1,0 +1,129 @@
+/* ==========================================================================
+   Designtokens - Corporate-Basis Klinikum St. Georg, Medium "Aero Glass".
+   Marken- und Skalenwerte sind gebunden, keine ad-hoc-Werte im Stylesheet.
+   ========================================================================== */
+:root {
+  /* --- Marke (verbindlich) ------------------------------------------- */
+  --ksg-red: #E3000B;
+  --ksg-red-deep: #B00009;
+  --ksg-gray: #555553;
+  --ksg-secondary-text: #595959;
+  --ksg-rule: #BFBFBF;
+
+  /* --- Neutrale Rampe (kuehl harmonisiert) ---------------------------- */
+  --n-0:  #FFFFFF;
+  --n-25: #FAFAFB;
+  --n-50: #F4F5F7;
+  --n-100:#E9EBEF;
+  --n-200:#D8DBE2;
+  --n-300:#BFC4CE;
+  --n-400:#98A0AE;
+  --n-500:#6E7684;
+  --n-600:#4E5560;
+  --n-700:#383D46;
+  --n-800:#252930;
+  --n-900:#15181D;
+  --n-950:#0C0E12;
+
+  /* --- Funktionale Status (App-Medium) -------------------------------- */
+  --st-ok:      #0F7B4F;
+  --st-ok-bg:   rgba(15,123,79,.12);
+  --st-info:    #1F6FB2;
+  --st-info-bg: rgba(31,111,178,.12);
+  --st-warn:    #A66300;
+  --st-warn-bg: rgba(166,99,0,.12);
+  --st-crit:    var(--ksg-red);
+  --st-crit-bg: rgba(227,0,11,.10);
+
+  /* --- Typo-Leiter App (11 13 15 17 20 24 30 px) ---------------------- */
+  --fs-xxs: 11px; --fs-xs: 13px; --fs-sm: 15px; --fs-md: 17px;
+  --fs-lg: 20px;  --fs-xl: 24px; --fs-xxl: 30px;
+  /* Web-Leiter fuer Dokumentflaechen (14 17 21 26 33 42 px) */
+  --fs-doc: 17px; --fs-doc-lead: 21px; --fs-display: 33px; --fs-display-lg: 42px;
+
+  --lh-tight: 1.16; --lh-snug: 1.28; --lh-list: 1.34;
+  --lh-body: 1.42;  --lh-read: 1.55;
+
+  --tracking-display: -.012em;
+  --tracking-title:   -.006em;
+  --tracking-small:    .012em;
+  --tracking-caps:     .06em;
+
+  --font-ui: Arial, "Helvetica Neue", Helvetica, "Segoe UI", system-ui, sans-serif;
+  --font-doc: Arial, "Helvetica Neue", Helvetica, system-ui, sans-serif;
+  --font-mono: "SFMono-Regular", "Cascadia Mono", Consolas, "Liberation Mono", monospace;
+
+  /* --- Abstandsleiter (2 4 6 8 12 16 20 24 32 48) --------------------- */
+  --s-2:2px; --s-4:4px; --s-6:6px; --s-8:8px; --s-12:12px;
+  --s-16:16px; --s-20:20px; --s-24:24px; --s-32:32px; --s-48:48px;
+
+  /* --- Satzbreite ----------------------------------------------------- */
+  --measure-doc: 68ch;
+
+  /* --- Radien / Linien ------------------------------------------------ */
+  --r-sm: 8px; --r-md: 12px; --r-lg: 18px; --r-xl: 26px; --r-pill: 999px;
+  --rule-hair: 1px;
+
+  /* --- Aero-Glass ----------------------------------------------------- */
+  --glass-bg:      rgba(255,255,255,.62);
+  --glass-bg-soft: rgba(255,255,255,.44);
+  --glass-bg-deep: rgba(255,255,255,.80);
+  --glass-brd:     rgba(255,255,255,.72);
+  --glass-brd-soft:rgba(21,24,29,.08);
+  --glass-blur: 22px;
+  --glass-sat: 165%;
+  --sheen: linear-gradient(135deg, rgba(255,255,255,.85) 0%, rgba(255,255,255,.20) 42%, rgba(255,255,255,0) 68%);
+
+  /* --- Elevation ------------------------------------------------------ */
+  --el-1: 0 1px 2px rgba(21,24,29,.06), 0 2px 8px rgba(21,24,29,.05);
+  --el-2: 0 2px 6px rgba(21,24,29,.07), 0 12px 28px rgba(21,24,29,.09);
+  --el-3: 0 6px 18px rgba(21,24,29,.10), 0 28px 60px rgba(21,24,29,.14);
+  --el-red: 0 6px 20px rgba(227,0,11,.28);
+
+  /* --- Flaechen ------------------------------------------------------- */
+  --bg-base: #E8ECF3;
+  --bg-tint-a: rgba(227,0,11,.20);
+  --bg-tint-b: rgba(31,111,178,.24);
+  --bg-tint-c: rgba(85,85,83,.18);
+  --surface: var(--n-0);
+  --surface-2: var(--n-50);
+  --text: #101318;
+  --text-2: #4E5560;
+  --text-3: #6E7684;
+  --rule: rgba(21,24,29,.10);
+  --rule-strong: rgba(21,24,29,.18);
+
+  --ease-out: cubic-bezier(.22,.85,.3,1);
+  --ease-in-out: cubic-bezier(.65,.05,.36,1);
+  --dur-1: 140ms; --dur-2: 240ms; --dur-3: 420ms; --dur-4: 720ms;
+}
+
+/* --- Dunkles Medium: nur Tokens werden neu belegt ---------------------- */
+:root[data-theme="dark"] {
+  --bg-base: #0C0E12;
+  --bg-tint-a: rgba(227,0,11,.22);
+  --bg-tint-b: rgba(31,111,178,.24);
+  --bg-tint-c: rgba(120,130,150,.16);
+  --surface: #171B21;
+  --surface-2: #1E232B;
+  --text: #EDEFF3;
+  --text-2: #B6BDC8;
+  --text-3: #8C94A2;
+  --rule: rgba(255,255,255,.10);
+  --rule-strong: rgba(255,255,255,.20);
+  --glass-bg:      rgba(30,35,43,.62);
+  --glass-bg-soft: rgba(30,35,43,.42);
+  --glass-bg-deep: rgba(23,27,33,.86);
+  --glass-brd:     rgba(255,255,255,.14);
+  --glass-brd-soft:rgba(255,255,255,.08);
+  --sheen: linear-gradient(135deg, rgba(255,255,255,.16) 0%, rgba(255,255,255,.04) 42%, rgba(255,255,255,0) 68%);
+  --el-1: 0 1px 2px rgba(0,0,0,.40), 0 2px 8px rgba(0,0,0,.32);
+  --el-2: 0 2px 6px rgba(0,0,0,.44), 0 12px 28px rgba(0,0,0,.42);
+  --el-3: 0 6px 18px rgba(0,0,0,.48), 0 28px 60px rgba(0,0,0,.56);
+  --st-ok: #43C48A; --st-ok-bg: rgba(67,196,138,.16);
+  --st-info: #64B0EE; --st-info-bg: rgba(100,176,238,.16);
+  --st-warn: #E0A140; --st-warn-bg: rgba(224,161,64,.16);
+  --ksg-red: #FF4048; --ksg-red-deep: #E3000B;
+  --st-crit: #FF4048; --st-crit-bg: rgba(255,64,72,.16);
+  color-scheme: dark;
+}

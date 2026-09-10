@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>Befundatlas · Referenz- und Normalbefunde</title>
+<meta name="description" content="Strukturierte Referenz- und Normalbefunde für CT und MRT, wählbar über Modalität, Region, Thema und Fragestellung.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23E3000B'/%3E%3Cpath d='M16 6a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 3.4 2.1 4.5 4.5 2.1-4.5 2.1L16 22.6l-2.1-4.5-4.5-2.1 4.5-2.1z' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+
+<div class="aurora" aria-hidden="true"><i></i><i></i><i></i></div>
+<div class="grain" aria-hidden="true"></div>
+
+<div class="app">
+
+  <!-- ============================================================ Topbar -->
+  <header class="topbar glass">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="9"></circle><path d="m14.8 9.2-1.6 4-4 1.6 1.6-4z"></path>
+        </svg>
+      </span>
+      <span class="brand-text">
+        <span class="brand-name">Befundatlas</span>
+        <span class="brand-sub">Referenz- und Normalbefunde · CT &amp; MRT</span>
+      </span>
+    </div>
+
+    <span class="topbar-spacer"></span>
+
+    <button class="icon-btn mobile-tabs" id="btn-mobile" type="button" aria-label="Ansicht wechseln">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+      <span class="btn-label">Auswahl</span>
+    </button>
+
+    <button class="icon-btn" id="btn-search" type="button" title="Volltextsuche (Taste /)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <span class="btn-label">Suche</span>
+    </button>
+
+    <button class="icon-btn" id="btn-theme" type="button" title="Hell/Dunkel umschalten" aria-label="Farbschema umschalten">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/></svg>
+    </button>
+
+    <button class="icon-btn" id="btn-settings" type="button" title="KI-Einstellungen">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.7 1.7 0 0 0 8.9 19a1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 4.6 8.4a1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+      <span class="btn-label">Einstellungen</span>
+    </button>
+
+    <button class="icon-btn primary" id="btn-ai" type="button" title="Befund KI-gestützt anpassen">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 13.9 8.1 19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M18.5 16.5 19.3 18.7 21.5 19.5 19.3 20.3 18.5 22.5 17.7 20.3 15.5 19.5 17.7 18.7z"/></svg>
+      <span class="btn-label">KI-Anpassung</span>
+    </button>
+  </header>
+
+  <!-- ============================================================== Main -->
+  <div class="main" id="main" data-mobile="nav">
+
+    <!-- ------------------------------------------------------ Navigator -->
+    <nav class="nav-panel glass" aria-label="Befundauswahl">
+      <div class="crumbs" id="crumbs"></div>
+      <div class="steps scroll" id="steps"></div>
+    </nav>
+
+    <!-- --------------------------------------------------------- Viewer -->
+    <section class="viewer glass" aria-label="Befundanzeige">
+      <div class="viewer-head" id="viewer-head" hidden>
+        <div class="segmented" role="tablist" id="segmented">
+          <span class="seg-pill" id="seg-pill"></span>
+          <button class="seg" role="tab" id="seg-normal" aria-selected="true" type="button">
+            Normalbefund
+          </button>
+          <button class="seg" role="tab" id="seg-ref" aria-selected="false" type="button">
+            Referenzbefunde <span class="badge" id="ref-count">0</span>
+          </button>
+        </div>
+        <div class="viewer-actions">
+          <button class="icon-btn" id="btn-list" type="button" hidden>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg>
+            <span class="btn-label">Liste</span>
+          </button>
+          <button class="icon-btn" id="btn-copy" type="button" title="Gesamten Befund kopieren">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+            <span class="btn-label">Kopieren</span>
+          </button>
+          <button class="icon-btn" id="btn-print" type="button" title="Drucken / als PDF sichern">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="7" rx="1"/></svg>
+            <span class="btn-label">Drucken</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="viewer-body" id="viewer-body">
+        <aside class="reflist" id="reflist" hidden>
+          <div class="reflist-head">
+            <div class="filter">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+              <input id="reffilter" type="search" placeholder="In dieser Auswahl filtern …" aria-label="Referenzbefunde filtern">
+            </div>
+          </div>
+          <div class="reflist-items scroll" id="reflist-items"></div>
+        </aside>
+
+        <div class="doc-wrap scroll" id="doc-wrap">
+          <div class="placeholder" id="placeholder">
+            <div class="placeholder-inner">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="9"></circle><path d="m15.5 8.5-2 5.5-5.5 2 2-5.5z"></path>
+              </svg>
+              <h3>Vier Klicks zum Befund</h3>
+              <p>Modalität, Untersuchungsregion, Thema und Fragestellung wählen. Zuerst erscheint der passende Normalbefund, danach die sortierten Referenzbefunde derselben Konstellation.</p>
+              <div class="stat-row" id="stats"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<!-- ===================================================== Seitenpanel: KI -->
+<div class="scrim" id="scrim"></div>
+
+<aside class="sheet" id="sheet-ai" role="dialog" aria-modal="true" aria-labelledby="sheet-ai-title" aria-hidden="true">
+  <div class="sheet-head">
+    <h2 id="sheet-ai-title">KI-Anpassung</h2>
+    <button class="icon-btn" data-close type="button" aria-label="Schließen">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </div>
+  <div class="sheet-body">
+    <div class="notice info" id="ai-context">Kein Befund ausgewählt.</div>
+
+    <div class="fieldset">
+      <label>Vorgefertigte Anpassungen</label>
+      <div class="chips" id="ai-presets"></div>
+    </div>
+
+    <div class="fieldset">
+      <label for="ai-instruction">Anweisung</label>
+      <textarea class="textarea" id="ai-instruction" placeholder="z. B. Progrediente Lebermetastasen in Segment 6 und 8 ergänzen, Beurteilung entsprechend anpassen."></textarea>
+      <p class="hint">Die Stilvorgaben werden automatisch mitgeschickt. Beschreiben Sie nur die inhaltliche Änderung.</p>
+    </div>
+
+    <div class="fieldset">
+      <label for="ai-model-quick">Modell</label>
+      <select class="select" id="ai-model-quick"></select>
+    </div>
+
+    <div class="fieldset">
+      <label>Ergebnis</label>
+      <div class="ai-out" id="ai-out" aria-live="polite"></div>
+      <div class="bar" id="ai-bar" hidden><i></i></div>
+    </div>
+  </div>
+  <div class="sheet-foot">
+    <button class="icon-btn primary" id="ai-run" type="button" style="flex:1">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 13.9 8.1 19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>
+      <span class="btn-label">Befund anpassen</span>
+    </button>
+    <button class="icon-btn" id="ai-apply" type="button" disabled>Übernehmen</button>
+    <button class="icon-btn" id="ai-stop" type="button" hidden>Stopp</button>
+  </div>
+</aside>
+
+<!-- ============================================ Seitenpanel: Einstellungen -->
+<aside class="sheet" id="sheet-set" role="dialog" aria-modal="true" aria-labelledby="sheet-set-title" aria-hidden="true">
+  <div class="sheet-head">
+    <h2 id="sheet-set-title">Einstellungen</h2>
+    <button class="icon-btn" data-close type="button" aria-label="Schließen">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </div>
+  <div class="sheet-body">
+    <div class="fieldset">
+      <label for="set-key">OpenRouter API-Key</label>
+      <input class="input" id="set-key" type="password" autocomplete="off" spellcheck="false" placeholder="sk-or-v1-…">
+      <label class="switch"><input type="checkbox" id="set-remember"> Key im Browser speichern (localStorage)</label>
+      <p class="hint">Ohne Speicherung gilt der Key nur für die laufende Sitzung. Der Key verlässt den Browser ausschließlich Richtung <code>openrouter.ai</code>.</p>
+      <div class="row">
+        <button class="icon-btn" id="set-test" type="button">Key prüfen</button>
+        <button class="icon-btn" id="set-clear" type="button">Key löschen</button>
+      </div>
+      <div id="set-keystatus"></div>
+    </div>
+
+    <div class="fieldset">
+      <label for="set-model">Modell</label>
+      <select class="select" id="set-model"></select>
+      <label class="switch"><input type="checkbox" id="set-freeonly" checked> Nur kostenfreie Modelle (<code>:free</code>)</label>
+      <div class="row">
+        <button class="icon-btn" id="set-reload" type="button">Modelliste aktualisieren</button>
+        <span class="hint" id="set-modelinfo"></span>
+      </div>
+    </div>
+
+    <div class="fieldset">
+      <label for="set-temp">Kreativität (temperature)</label>
+      <input class="input" id="set-temp" type="range" min="0" max="1" step="0.05" value="0.25">
+      <p class="hint">Empfohlen: <b>0,20–0,35</b>. Höhere Werte lösen den Befund vom Referenzstil.</p>
+    </div>
+
+    <div class="fieldset">
+      <label>Stilkontrolle</label>
+      <label class="switch"><input type="checkbox" id="set-guard" checked> Stilprüfung nach der Generierung (harte Verbote, Maßeinheiten, Kommazahlen)</label>
+      <label class="switch"><input type="checkbox" id="set-stream" checked> Antwort streamen</label>
+    </div>
+
+    <div class="notice warn">
+      Die KI-Funktion verändert Textbausteine. Jeder erzeugte Befund ist vor Verwendung fachlich zu prüfen; er ist kein Befund an einem realen Patienten.
+    </div>
+  </div>
+  <div class="sheet-foot">
+    <button class="icon-btn primary" data-close type="button" style="flex:1">Fertig</button>
+  </div>
+</aside>
+
+<!-- ==================================================== Seitenpanel: Suche -->
+<aside class="sheet" id="sheet-search" role="dialog" aria-modal="true" aria-labelledby="sheet-search-title" aria-hidden="true">
+  <div class="sheet-head">
+    <h2 id="sheet-search-title">Volltextsuche</h2>
+    <button class="icon-btn" data-close type="button" aria-label="Schließen">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </div>
+  <div class="sheet-body">
+    <div class="fieldset">
+      <label for="search-q">Suchbegriff</label>
+      <input class="input" id="search-q" type="search" placeholder="z. B. Kapselüberschreitung, Meniskusriss, EMVI …" autocomplete="off">
+      <p class="hint">Durchsucht Klinik, Fragestellung, Befund und Beurteilung. Ergebnis anklicken, um direkt zur passenden Auswahl zu springen. <kbd>Esc</kbd> schließt.</p>
+    </div>
+    <div class="search-results" id="search-results"></div>
+  </div>
+</aside>
+
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<script src="data/index.js"></script>
+<script src="assets/app.js"></script>
+<script src="assets/ai.js"></script>
+</body>
+</html>
