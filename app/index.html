@@ -5,31 +5,50 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
 <title>Befundatlas · Referenz- und Normalbefunde</title>
-<meta name="description" content="Strukturierte Referenz- und Normalbefunde für CT und MRT, wählbar über Modalität, Region, Thema und Fragestellung.">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23E3000B'/%3E%3Cpath d='M16 6a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 3.4 2.1 4.5 4.5 2.1-4.5 2.1L16 22.6l-2.1-4.5-4.5-2.1 4.5-2.1z' fill='%23fff'/%3E%3C/svg%3E">
+<meta name="description" content="Auswahlgeführte radiologische Referenz- und Normalbefunde für CT und MRT mit KI-gestützter Anpassung.">
+
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#E3000B">
+<meta name="application-name" content="Befundatlas">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Befundatlas">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="icon" href="assets/brand/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="assets/brand/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="assets/brand/apple-touch-icon.png">
+<link rel="mask-icon" href="assets/brand/favicon.svg" color="#E3000B">
+
 <link rel="stylesheet" href="assets/tokens.css">
 <link rel="stylesheet" href="assets/styles.css">
 </head>
 <body>
 
-<div class="aurora" aria-hidden="true"><i></i><i></i><i></i></div>
+<div class="aurora" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
 <div class="grain" aria-hidden="true"></div>
 
 <div class="app">
 
   <!-- ============================================================ Topbar -->
-  <header class="topbar glass">
-    <div class="brand">
+  <header class="topbar glass" id="topbar">
+    <a class="brand" href="#" id="brand" title="Zur Startansicht">
       <span class="brand-mark" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="9"></circle><path d="m14.8 9.2-1.6 4-4 1.6 1.6-4z"></path>
+        <svg viewBox="0 0 48 48">
+          <g fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <circle cx="24" cy="24" r="17.2"/>
+            <path d="M24 3.8V1.4M24 44.2v2.4M3.8 24H1.4M44.2 24h2.4"/>
+          </g>
+          <g fill="currentColor">
+            <path d="M32.13 15.87 26.97 26.97 21.03 21.03Z"/>
+            <path d="M15.87 32.13 26.97 26.97 21.03 21.03Z" opacity=".40"/>
+          </g>
         </svg>
       </span>
       <span class="brand-text">
-        <span class="brand-name">Befundatlas</span>
+        <span class="brand-name"><b>Befund</b><em>atlas</em></span>
         <span class="brand-sub">Referenz- und Normalbefunde · CT &amp; MRT</span>
       </span>
-    </div>
+    </a>
 
     <span class="topbar-spacer"></span>
 
@@ -38,13 +57,15 @@
       <span class="btn-label">Auswahl</span>
     </button>
 
-    <button class="icon-btn" id="btn-search" type="button" title="Volltextsuche (Taste /)">
+    <button class="icon-btn ghost-key" id="btn-palette" type="button" title="Befehle und Sprungziele (Strg + K)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-      <span class="btn-label">Suche</span>
+      <span class="btn-label">Suchen &amp; springen</span>
+      <kbd>⌘K</kbd>
     </button>
 
-    <button class="icon-btn" id="btn-theme" type="button" title="Hell/Dunkel umschalten" aria-label="Farbschema umschalten">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/></svg>
+    <button class="icon-btn" id="btn-theme" type="button" title="Hell und dunkel umschalten" aria-label="Farbschema umschalten">
+      <svg class="ico-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.6M12 19.4V22M2 12h2.6M19.4 12H22M4.9 4.9l1.9 1.9M17.2 17.2l1.9 1.9M19.1 4.9l-1.9 1.9M6.8 17.2l-1.9 1.9"/></svg>
+      <svg class="ico-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/></svg>
     </button>
 
     <button class="icon-btn" id="btn-settings" type="button" title="KI-Einstellungen">
@@ -65,6 +86,11 @@
     <nav class="nav-panel glass" aria-label="Befundauswahl">
       <div class="crumbs" id="crumbs"></div>
       <div class="steps scroll" id="steps"></div>
+      <div class="nav-foot">
+        <span><kbd>1</kbd>–<kbd>9</kbd> wählen</span>
+        <span><kbd>⌫</kbd> zurück</span>
+        <span><kbd>⌘K</kbd> springen</span>
+      </div>
     </nav>
 
     <!-- --------------------------------------------------------- Viewer -->
@@ -73,22 +99,25 @@
         <div class="segmented" role="tablist" id="segmented">
           <span class="seg-pill" id="seg-pill"></span>
           <button class="seg" role="tab" id="seg-normal" aria-selected="true" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
             Normalbefund
           </button>
           <button class="seg" role="tab" id="seg-ref" aria-selected="false" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg>
             Referenzbefunde <span class="badge" id="ref-count">0</span>
           </button>
         </div>
         <div class="viewer-actions">
-          <button class="icon-btn" id="btn-list" type="button" hidden>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg>
+          <button class="icon-btn" id="btn-list" type="button" hidden aria-pressed="false" title="Liste ein- und ausblenden">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 5h16M4 12h16M4 19h16"/></svg>
             <span class="btn-label">Liste</span>
           </button>
           <button class="icon-btn" id="btn-copy" type="button" title="Gesamten Befund kopieren">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+            <svg class="ico-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+            <svg class="ico-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
             <span class="btn-label">Kopieren</span>
           </button>
-          <button class="icon-btn" id="btn-print" type="button" title="Drucken / als PDF sichern">
+          <button class="icon-btn" id="btn-print" type="button" title="Drucken oder als PDF sichern">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="7" rx="1"/></svg>
             <span class="btn-label">Drucken</span>
           </button>
@@ -109,9 +138,18 @@
         <div class="doc-wrap scroll" id="doc-wrap">
           <div class="placeholder" id="placeholder">
             <div class="placeholder-inner">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="9"></circle><path d="m15.5 8.5-2 5.5-5.5 2 2-5.5z"></path>
-              </svg>
+              <span class="hero-mark" aria-hidden="true">
+                <svg viewBox="0 0 48 48">
+                  <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+                    <circle cx="24" cy="24" r="17.2"/>
+                    <path d="M24 3.8V1.4M24 44.2v2.4M3.8 24H1.4M44.2 24h2.4"/>
+                  </g>
+                  <g fill="currentColor" class="needle">
+                    <path d="M32.13 15.87 26.97 26.97 21.03 21.03Z"/>
+                    <path d="M15.87 32.13 26.97 26.97 21.03 21.03Z" opacity=".40"/>
+                  </g>
+                </svg>
+              </span>
               <h3>Vier Klicks zum Befund</h3>
               <p>Modalität, Untersuchungsregion, Thema und Fragestellung wählen. Zuerst erscheint der passende Normalbefund, danach die sortierten Referenzbefunde derselben Konstellation.</p>
               <div class="stat-row" id="stats"></div>
@@ -127,62 +165,108 @@
 <!-- ===================================================== Seitenpanel: KI -->
 <div class="scrim" id="scrim"></div>
 
-<aside class="sheet" id="sheet-ai" role="dialog" aria-modal="true" aria-labelledby="sheet-ai-title" aria-hidden="true">
+<aside class="sheet wide" id="sheet-ai" role="dialog" aria-modal="true" aria-labelledby="sheet-ai-title" aria-hidden="true">
   <div class="sheet-head">
+    <span class="sheet-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 13.9 8.1 19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>
+    </span>
     <h2 id="sheet-ai-title">KI-Anpassung</h2>
     <button class="icon-btn" data-close type="button" aria-label="Schließen">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
     </button>
   </div>
+
   <div class="sheet-body">
-    <div class="notice info" id="ai-context">Kein Befund ausgewählt.</div>
+    <div class="ai-ctx" id="ai-context">Kein Befund ausgewählt.</div>
 
     <div class="fieldset">
-      <label>Vorgefertigte Anpassungen</label>
-      <div class="chips" id="ai-presets"></div>
+      <label>Vorgefertigte Anweisungen</label>
+      <div class="chips presets" id="ai-presets"></div>
     </div>
 
     <div class="fieldset">
       <label for="ai-instruction">Anweisung</label>
-      <textarea class="textarea" id="ai-instruction" placeholder="z. B. Progrediente Lebermetastasen in Segment 6 und 8 ergänzen, Beurteilung entsprechend anpassen."></textarea>
-      <p class="hint">Die Stilvorgaben werden automatisch mitgeschickt. Beschreiben Sie nur die inhaltliche Änderung.</p>
+      <textarea class="textarea" id="ai-instruction" rows="4" placeholder="z. B. Progrediente Lebermetastasen in Segment 6 und 8 ergänzen, Beurteilung entsprechend anpassen."></textarea>
+      <p class="hint">Stilregeln, Stilprofil, Ordnungsvorgabe und echte Referenzbefunde derselben Auswahl werden automatisch mitgeschickt. Beschreiben Sie nur die inhaltliche Änderung. <kbd>⌘</kbd><kbd>↵</kbd> startet.</p>
     </div>
 
-    <div class="fieldset">
-      <label for="ai-model-quick">Modell</label>
-      <select class="select" id="ai-model-quick"></select>
+    <div class="ai-meta">
+      <button class="ai-modelbtn" id="ai-settings-link" type="button" title="Modell in den Einstellungen wechseln">
+        <span class="ai-modelbtn-l">Modell</span>
+        <span class="ai-modelbtn-n" id="ai-model-label">–</span>
+        <span class="ai-modelbtn-m" id="ai-model-meta"></span>
+      </button>
+      <div class="ai-refbox">
+        <span class="ai-modelbtn-l">Referenzlage</span>
+        <span id="ai-refinfo">–</span>
+      </div>
+    </div>
+
+    <!-- ---------------------------------------------- Fortschrittsanzeige -->
+    <div class="ai-monitor" id="ai-monitor" hidden>
+      <div class="ai-ring">
+        <svg viewBox="0 0 60 60" aria-hidden="true">
+          <circle class="ring-bg" cx="30" cy="30" r="26"></circle>
+          <circle class="ring-fill" id="ai-ring-fill" cx="30" cy="30" r="26"></circle>
+        </svg>
+        <span class="ai-ring-pct" id="ai-ring-pct">0%</span>
+      </div>
+      <div class="ai-monitor-main">
+        <div class="ai-monitor-top">
+          <b id="ai-ring-label">bereit</b>
+          <span class="ai-nums">
+            <span id="ai-elapsed">0,0 s</span>
+            <span id="ai-rate"></span>
+            <span id="ai-tokens"></span>
+          </span>
+        </div>
+        <div class="stages" id="ai-stages"></div>
+      </div>
     </div>
 
     <div class="fieldset">
       <label>Ergebnis</label>
       <div class="ai-out" id="ai-out" aria-live="polite"></div>
-      <div class="bar" id="ai-bar" hidden><i></i></div>
     </div>
   </div>
+
   <div class="sheet-foot">
-    <button class="icon-btn primary" id="ai-run" type="button" style="flex:1">
+    <button class="icon-btn primary grow" id="ai-run" type="button" disabled>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 13.9 8.1 19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>
       <span class="btn-label">Befund anpassen</span>
     </button>
-    <button class="icon-btn" id="ai-apply" type="button" disabled>Übernehmen</button>
-    <button class="icon-btn" id="ai-stop" type="button" hidden>Stopp</button>
+    <button class="icon-btn" id="ai-stop" type="button" hidden>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="7" y="7" width="10" height="10" rx="2"/></svg>
+      <span class="btn-label">Stopp</span>
+    </button>
+    <button class="icon-btn" id="ai-copy" type="button" title="Ergebnis kopieren">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+    </button>
+    <button class="icon-btn ok" id="ai-apply" type="button" disabled>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+      <span class="btn-label">Übernehmen</span>
+    </button>
   </div>
 </aside>
 
 <!-- ============================================ Seitenpanel: Einstellungen -->
-<aside class="sheet" id="sheet-set" role="dialog" aria-modal="true" aria-labelledby="sheet-set-title" aria-hidden="true">
+<aside class="sheet wide" id="sheet-set" role="dialog" aria-modal="true" aria-labelledby="sheet-set-title" aria-hidden="true">
   <div class="sheet-head">
+    <span class="sheet-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1"/></svg>
+    </span>
     <h2 id="sheet-set-title">Einstellungen</h2>
     <button class="icon-btn" data-close type="button" aria-label="Schließen">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
     </button>
   </div>
   <div class="sheet-body">
+
     <div class="fieldset">
       <label for="set-key">OpenRouter API-Key</label>
       <input class="input" id="set-key" type="password" autocomplete="off" spellcheck="false" placeholder="sk-or-v1-…">
-      <label class="switch"><input type="checkbox" id="set-remember"> Key im Browser speichern (localStorage)</label>
-      <p class="hint">Ohne Speicherung gilt der Key nur für die laufende Sitzung. Der Key verlässt den Browser ausschließlich Richtung <code>openrouter.ai</code>.</p>
+      <label class="switch"><input type="checkbox" id="set-remember"> <span>Key im Browser speichern</span></label>
+      <p class="hint">Ohne Speicherung gilt der Key nur für die laufende Sitzung. Er verlässt den Browser ausschließlich Richtung <code>openrouter.ai</code>.</p>
       <div class="row">
         <button class="icon-btn" id="set-test" type="button">Key prüfen</button>
         <button class="icon-btn" id="set-clear" type="button">Key löschen</button>
@@ -191,25 +275,40 @@
     </div>
 
     <div class="fieldset">
-      <label for="set-model">Modell</label>
-      <select class="select" id="set-model"></select>
-      <label class="switch"><input type="checkbox" id="set-freeonly" checked> Nur kostenfreie Modelle (<code>:free</code>)</label>
-      <div class="row">
-        <button class="icon-btn" id="set-reload" type="button">Modelliste aktualisieren</button>
-        <span class="hint" id="set-modelinfo"></span>
+      <label>Modell</label>
+      <div class="row tight">
+        <div class="filter grow">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input id="model-search" type="search" placeholder="Modell suchen …" aria-label="Modell suchen">
+        </div>
+        <button class="icon-btn" id="set-reload" type="button" title="Modellliste neu laden">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 4v5h-5"/></svg>
+        </button>
       </div>
+      <label class="switch"><input type="checkbox" id="set-freeonly" checked> <span>Nur kostenfreie Modelle</span></label>
+      <p class="hint" id="set-modelinfo"></p>
+      <div class="model-list scroll" id="model-list"></div>
+      <p class="hint">Angezeigt sind Kontextfenster, maximale Ausgabelänge, Preis je einer Million Token, Eingabearten und Reasoning-Verhalten. Modelle, die mit <b>denkt vor</b> gekennzeichnet sind, schreiben ihren Denkschritt häufig in die Antwort und halten das Feldformat schlechter ein; sie stehen deshalb am Ende der Liste.</p>
     </div>
 
     <div class="fieldset">
-      <label for="set-temp">Kreativität (temperature)</label>
-      <input class="input" id="set-temp" type="range" min="0" max="1" step="0.05" value="0.25">
-      <p class="hint">Empfohlen: <b>0,20–0,35</b>. Höhere Werte lösen den Befund vom Referenzstil.</p>
+      <label for="set-nref">Referenzbefunde im Auftrag <b class="val" id="nref-val">5</b></label>
+      <input class="range" id="set-nref" type="range" min="0" max="8" step="1" value="5">
+      <p class="hint">Echte Befunde derselben Auswahl, die dem Modell als Stilvorbild mitgegeben werden. Mehr Vorbilder binden den Stil enger, verlängern aber die Anfrage.</p>
     </div>
 
     <div class="fieldset">
-      <label>Stilkontrolle</label>
-      <label class="switch"><input type="checkbox" id="set-guard" checked> Stilprüfung nach der Generierung (harte Verbote, Maßeinheiten, Kommazahlen)</label>
-      <label class="switch"><input type="checkbox" id="set-stream" checked> Antwort streamen</label>
+      <label for="set-temp">Kreativität <b class="val" id="temp-val">0,25</b></label>
+      <input class="range" id="set-temp" type="range" min="0" max="1" step="0.05" value="0.25">
+      <p class="hint">Empfohlen 0,20 bis 0,35. Höhere Werte lösen den Befund vom Referenzstil.</p>
+    </div>
+
+    <div class="fieldset">
+      <label>Ablauf</label>
+      <label class="switch"><input type="checkbox" id="set-refine" checked> <span>Stilangleich in zweitem Durchgang</span></label>
+      <p class="hint">Ein zweiter Aufruf überarbeitet ausschließlich die Form: Satzlänge, Reihenfolge, Verdichtung, verbotene Wendungen. Der Inhalt bleibt festgeschrieben.</p>
+      <label class="switch"><input type="checkbox" id="set-guard" checked> <span>Stilprüfung nach der Generierung</span></label>
+      <label class="switch"><input type="checkbox" id="set-stream" checked> <span>Antwort streamen</span></label>
     </div>
 
     <div class="notice warn">
@@ -217,32 +316,33 @@
     </div>
   </div>
   <div class="sheet-foot">
-    <button class="icon-btn primary" data-close type="button" style="flex:1">Fertig</button>
+    <button class="icon-btn primary grow" data-close type="button">Fertig</button>
   </div>
 </aside>
 
-<!-- ==================================================== Seitenpanel: Suche -->
-<aside class="sheet" id="sheet-search" role="dialog" aria-modal="true" aria-labelledby="sheet-search-title" aria-hidden="true">
-  <div class="sheet-head">
-    <h2 id="sheet-search-title">Volltextsuche</h2>
-    <button class="icon-btn" data-close type="button" aria-label="Schließen">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
-    </button>
-  </div>
-  <div class="sheet-body">
-    <div class="fieldset">
-      <label for="search-q">Suchbegriff</label>
-      <input class="input" id="search-q" type="search" placeholder="z. B. Kapselüberschreitung, Meniskusriss, EMVI …" autocomplete="off">
-      <p class="hint">Durchsucht Klinik, Fragestellung, Befund und Beurteilung. Ergebnis anklicken, um direkt zur passenden Auswahl zu springen. <kbd>Esc</kbd> schließt.</p>
+<!-- ================================================= Befehls- und Suchpalette -->
+<div class="palette-wrap" id="palette" aria-hidden="true">
+  <div class="palette glass" role="dialog" aria-modal="true" aria-label="Suchen und springen">
+    <div class="palette-in">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="palette-q" type="text" autocomplete="off" spellcheck="false"
+             placeholder="Region, Thema, Befehl oder Volltext …" aria-label="Suchen und springen">
+      <kbd>Esc</kbd>
     </div>
-    <div class="search-results" id="search-results"></div>
+    <div class="palette-out scroll" id="palette-out"></div>
+    <div class="palette-foot">
+      <span><kbd>↑</kbd><kbd>↓</kbd> auswählen</span>
+      <span><kbd>↵</kbd> öffnen</span>
+      <span id="palette-mode">Sprungziele und Befehle · ab 3 Zeichen zusätzlich Volltext</span>
+    </div>
   </div>
-</aside>
+</div>
 
 <div class="toasts" id="toasts" aria-live="polite"></div>
 
 <script src="data/index.js"></script>
 <script src="assets/app.js"></script>
+<script src="assets/ai-style.js"></script>
 <script src="assets/ai.js"></script>
 </body>
 </html>

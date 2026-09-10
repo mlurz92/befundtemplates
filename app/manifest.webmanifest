@@ -1,0 +1,28 @@
+{
+  "name": "Befundatlas – Referenz- und Normalbefunde",
+  "short_name": "Befundatlas",
+  "description": "Auswahlgeführte radiologische Referenz- und Normalbefunde für CT und MRT mit KI-gestützter Anpassung.",
+  "lang": "de",
+  "dir": "ltr",
+  "start_url": "./index.html",
+  "scope": "./",
+  "id": "befundatlas",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#E8ECF3",
+  "theme_color": "#E3000B",
+  "categories": ["medical", "productivity", "reference"],
+  "icons": [
+    { "src": "assets/brand/favicon.svg", "sizes": "any", "type": "image/svg+xml" },
+    { "src": "assets/brand/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "assets/brand/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "assets/brand/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Volltextsuche", "short_name": "Suche", "url": "./index.html#suche",
+      "icons": [{ "src": "assets/brand/icon-192.png", "sizes": "192x192" }] },
+    { "name": "KI-Anpassung", "short_name": "KI", "url": "./index.html#ki",
+      "icons": [{ "src": "assets/brand/icon-192.png", "sizes": "192x192" }] }
+  ]
+}

@@ -65,9 +65,9 @@
   --rule-hair: 1px;
 
   /* --- Aero-Glass ----------------------------------------------------- */
-  --glass-bg:      rgba(255,255,255,.62);
-  --glass-bg-soft: rgba(255,255,255,.44);
-  --glass-bg-deep: rgba(255,255,255,.80);
+  --glass-bg:      rgba(255,255,255,.70);
+  --glass-bg-soft: rgba(255,255,255,.50);
+  --glass-bg-deep: rgba(255,255,255,.86);
   --glass-brd:     rgba(255,255,255,.72);
   --glass-brd-soft:rgba(21,24,29,.08);
   --glass-blur: 22px;
@@ -76,15 +76,17 @@
 
   /* --- Elevation ------------------------------------------------------ */
   --el-1: 0 1px 2px rgba(21,24,29,.06), 0 2px 8px rgba(21,24,29,.05);
-  --el-2: 0 2px 6px rgba(21,24,29,.07), 0 12px 28px rgba(21,24,29,.09);
-  --el-3: 0 6px 18px rgba(21,24,29,.10), 0 28px 60px rgba(21,24,29,.14);
+  --el-2: 0 2px 6px rgba(21,24,29,.09), 0 14px 32px rgba(21,24,29,.12);
+  --el-3: 0 8px 22px rgba(21,24,29,.14), 0 32px 70px rgba(21,24,29,.20);
   --el-red: 0 6px 20px rgba(227,0,11,.28);
+  --el-red-lg: 0 10px 34px rgba(227,0,11,.38);
+  --ring-focus: 0 0 0 3px rgba(227,0,11,.22);
 
   /* --- Flaechen ------------------------------------------------------- */
-  --bg-base: #E8ECF3;
-  --bg-tint-a: rgba(227,0,11,.20);
-  --bg-tint-b: rgba(31,111,178,.24);
-  --bg-tint-c: rgba(85,85,83,.18);
+  --bg-base: #DCE2EC;
+  --bg-tint-a: rgba(227,0,11,.17);
+  --bg-tint-b: rgba(24,96,166,.30);
+  --bg-tint-c: rgba(78,85,96,.26);
   --surface: var(--n-0);
   --surface-2: var(--n-50);
   --text: #101318;
@@ -95,15 +97,17 @@
 
   --ease-out: cubic-bezier(.22,.85,.3,1);
   --ease-in-out: cubic-bezier(.65,.05,.36,1);
-  --dur-1: 140ms; --dur-2: 240ms; --dur-3: 420ms; --dur-4: 720ms;
+  --spring: cubic-bezier(.28,1.18,.42,1);
+  --spring-soft: cubic-bezier(.34,1.06,.44,1);
+  --dur-1: 140ms; --dur-2: 240ms; --dur-3: 420ms; --dur-4: 720ms; --dur-5: 1100ms;
 }
 
 /* --- Dunkles Medium: nur Tokens werden neu belegt ---------------------- */
 :root[data-theme="dark"] {
-  --bg-base: #0C0E12;
-  --bg-tint-a: rgba(227,0,11,.22);
-  --bg-tint-b: rgba(31,111,178,.24);
-  --bg-tint-c: rgba(120,130,150,.16);
+  --bg-base: #090B0F;
+  --bg-tint-a: rgba(227,0,11,.26);
+  --bg-tint-b: rgba(31,111,178,.30);
+  --bg-tint-c: rgba(120,130,150,.18);
   --surface: #171B21;
   --surface-2: #1E232B;
   --text: #EDEFF3;

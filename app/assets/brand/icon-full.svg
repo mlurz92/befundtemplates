@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Befundatlas">
+  <title>Befundatlas</title>
+  <defs>
+    <linearGradient id="t" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F2141E"/>
+      <stop offset="1" stop-color="#B00009"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#t)"/>
+  <g transform="translate(32 32) scale(0.74) translate(-24 -24)">
+<g fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round">
+    <!-- Schnittebene -->
+    <circle cx="24" cy="24" r="17.2"/>
+    <!-- Justiermarken, zugleich Himmelsrichtungen -->
+    <path d="M24 3.8V1.4M24 44.2v2.4M3.8 24H1.4M44.2 24h2.4"/>
+  </g>
+  <!-- Kompassnadel -->
+  <g fill="#fff">
+    <path d="M32.13 15.87 26.97 26.97 21.03 21.03Z"/>
+    <path d="M15.87 32.13 26.97 26.97 21.03 21.03Z" opacity=".40"/>
+  </g>
+  </g>
+</svg>

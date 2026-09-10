@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-label="Befundatlas">
+  <title>Befundatlas</title>
+  <g fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+    <!-- Schnittebene -->
+    <circle cx="24" cy="24" r="17.2"/>
+    <!-- Justiermarken, zugleich Himmelsrichtungen -->
+    <path d="M24 3.8V1.4M24 44.2v2.4M3.8 24H1.4M44.2 24h2.4"/>
+  </g>
+  <!-- Kompassnadel -->
+  <g fill="currentColor">
+    <path d="M32.13 15.87 26.97 26.97 21.03 21.03Z"/>
+    <path d="M15.87 32.13 26.97 26.97 21.03 21.03Z" opacity=".40"/>
+  </g>
+</svg>
